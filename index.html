@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRM Pace Manager</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  background: #000;
+  color: #fff;
+  padding: 10px;
+}
+input, select, textarea {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+.container {
+  max-width: 520px;
+  margin: auto;
+}
+
+/* ヘッダー */
+.header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 8px 16px 8px;
+  border-bottom: 1px solid #222; 
+  margin-bottom: 10px;
+}
+.header-title {
+  font-family: 'Arial Black', Impact, sans-serif; 
+  font-size: 22px; 
+  font-style: italic; 
+  letter-spacing: 1px; 
+  color: #ffffff; 
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  text-align: left;
+  padding-right: 10px;
+}
+.menu-trigger {
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: #ffffff; 
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+/* メニューエリア */
+.menu-content {
+  display: none;
+  background: #222;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 12px;
+  border: 1px solid #444;
+}
+.menu-content.open {
+  display: block;
+}
+.menu-label {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 5px;
+  display: block;
+}
+textarea {
+  width: 100%;
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 4px;
+  height: 120px;
+}
+.btn-reset {
+  width: 100%;
+  background: #ff4444;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 6px;
+  margin-top: 15px;
+}
+
+/* 共通カードスタイル */
+.card {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+label {
+  display: block;
+  font-size: 13px;
+  color: #bbb;
+  margin-bottom: 3px;
+}
+input, select {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+}
+input[type="datetime-local"] {
+  font-size: 13px;
+  padding: 11px 4px;
+}
+
+/* 行レイアウト */
+.top-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.half {
+  flex: 1;
+}
+
+/* 現在距離と現在時間の並び */
+.time-dist-height {
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.flex-centered {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+.current-time-display {
+  font-size: 24px;
+  font-weight: bold;
+  color: #00e5ff; 
+  text-align: center;
+  padding: 10px 0;
+}
+
+/* 速度別PC到着時間カード */
+.full-width-pc-card {
+  width: 100%;
+  background: #0a192f;      
+  border: 1px solid #00d2ff; 
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.pc-title-label {
+  color: #00d2ff;            
+  font-size: 15px;           
+  font-weight: bold;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+.pc-main-row {
+  display: flex;
+  justify-content: center; 
+  align-items: baseline;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed rgba(0, 210, 255, 0.3);
+  padding-bottom: 6px;
+}
+
+/* 速度別時間テーブル */
+.pc-speed-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pc-speed-table th {
+  font-size: 13px; 
+  color: #00d2ff;
+  padding: 2px 4px;
+  font-weight: normal;
+  text-align: center;
+  border-bottom: 1px solid rgba(0, 210, 255, 0.2);
+}
+.pc-speed-table td {
+  font-size: 16px; 
+  font-weight: bold;
+  color: #ffffff;
+  padding: 5px 4px 2px 4px;
+  text-align: center;
+}
+
+/* グリッドレイアウト */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.title {
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 2px;
+}
+.value {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* 貯金時間カード */
+.big-card {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 15px 12px;
+  margin-top: 4px;
+}
+.big-value {
+  font-size: 42px;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 5px;
+}
+
+/* 強調色 */
+.green { color: #00ff66; }
+.yellow { color: #ffcc00; }
+.red { color: #ff4444; }
+.highlight { color: #ffff00; } 
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ヘッダー部分 -->
+  <div class="header">
+    <div class="header-title">BRM PACE MANAGER</div>
+    <div class="menu-trigger" id="menuTrigger">☰</div>
+  </div>
+
+  <!-- メニュー -->
+  <div class="menu-content" id="menuContent">
+    <div style="margin-bottom: 10px;">
+      <label class="menu-label">PCリスト登録 (貼り付け用)</label>
+      <textarea id="pcInput" placeholder="例:&#10;PC1, 御幸橋① フォト, 24.9km&#10;PC2、山城大橋 フォト，38.0km"></textarea>
+    </div>
+    <button class="btn-reset" id="resetBtn">全データをリセット</button>
+  </div>
+
+  <!-- 1段目：BRM設定とSTART日時 -->
+  <div class="top-row">
+    <div class="card half">
+      <label>BRM設定</label>
+      <select id="brm">
+        <option value="200,13.5">200km (13.5h)</option>
+        <option value="300,20">300km (20h)</option>
+        <option value="400,27">400km (27h)</option>
+        <option value="600,40">600km (40h)</option>
+      </select>
+    </div>
+    <div class="card half">
+      <label>START日時</label>
+      <input type="datetime-local" id="startTime">
+    </div>
+  </div>
+
+  <!-- 2段目：現在距離 ＆ 現在時間 -->
+  <div class="top-row">
+    <div class="card half time-dist-height">
+      <label style="text-align: center;">現在距離</label>
+      <div class="flex-centered">
+        <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:24px; color:#00ff66; padding: 4px; text-align: center;">
+      </div>
+    </div>
+    <div class="card half time-dist-height">
+      <label style="text-align: center;">現在時間</label>
+      <div class="flex-centered">
+        <div id="currentTime" class="current-time-display">--:--:--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3段目：速度別到着予定付き NEXT PCカード -->
+  <div class="card full-width-pc-card">
+    <div id="pcLabel" class="pc-title-label">NEXT: PC-</div>
+    <div class="pc-main-row">
+      <div class="value highlight" id="pcRemainDist" style="font-size:26px; text-align: center;">残り -- km</div>
+    </div>
+    <!-- 15km/h 〜 19km/h のスタート固定速度テーブル -->
+    <table class="pc-speed-table">
+      <tr>
+        <th>15km/h</th>
+        <th>16km/h</th>
+        <th>17km/h</th>
+        <th>18km/h</th>
+        <th>19km/h</th>
+      </tr>
+      <tr>
+        <td id="sp15">--:--</td>
+        <td id="sp16">--:--</td>
+        <td id="sp17">--:--</td>
+        <td id="sp18">--:--</td>
+        <td id="sp19">--:--</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 4段目：その他項目一覧 -->
+  <div class="grid">
+    <div class="card"><div class="title">経過時間</div><div class="value" id="elapsed">--</div></div>
+    <div class="card"><div class="title">残り時間</div><div class="value" id="remainTime">--</div></div>
+    <div class="card"><div class="title">グロス速度</div><div class="value" id="gross">--</div></div>
+    <div class="card"><div class="title">残り距離</div><div class="value" id="remainDistance">--</div></div>
+    <div class="card"><div class="title">完走予想</div><div class="value" id="finish">--</div></div>
+    <div class="card"><div class="title">必要平均</div><div class="value" id="needSpeed">--</div></div>
+  </div>
+
+  <!-- 5段目：貯金時間 -->
+  <div class="big-card">
+    <div class="title" style="text-align: center; font-size: 15px;">貯金時間</div>
+    <div class="big-value" id="saving">--</div>
+  </div>
+
+</div>
+
+<script>
+const brm = document.getElementById("brm");
+const startTime = document.getElementById("startTime");
+const distance = document.getElementById("distance");
+const pcInput = document.getElementById("pcInput");
+const menuTrigger = document.getElementById("menuTrigger");
+const menuContent = document.getElementById("menuContent");
+const resetBtn = document.getElementById("resetBtn");
+
+const defaultPCList = "PC1, 御幸橋① フォト, 24.9km\nPC2, 山城大橋 フォト, 38.0km";
+
+startTime.value = localStorage.getItem("startTime") || "";
+brm.value = localStorage.getItem("brm") || "200,13.5";
+distance.value = localStorage.getItem("distance") || "";
+pcInput.value = localStorage.getItem("pcList") || defaultPCList;
+
+menuTrigger.addEventListener("click", () => menuContent.classList.toggle("open"));
+
+resetBtn.addEventListener("click", () => {
+  if (confirm("全データをリセットしますか？")) {
+    localStorage.clear();
+
+    startTime.value = "";
+    distance.value = "";
+    brm.value = "200,13.5";
+    pcInput.value = "";
+
+    document.getElementById("elapsed").innerText = "--";
+    document.getElementById("remainTime").innerText = "--";
+    document.getElementById("gross").innerText = "--";
+    document.getElementById("remainDistance").innerText = "--";
+    document.getElementById("finish").innerText = "--";
+    document.getElementById("needSpeed").innerText = "--";
+    document.getElementById("saving").innerText = "--";
+    document.getElementById("saving").className = "big-value";
+    document.getElementById("pcLabel").innerText = "NEXT: PC-";
+    document.getElementById("pcRemainDist").innerText = "残り -- km";
+    
+    ["15","16","17","18","19"].forEach(s => document.getElementById(`sp${s}`).innerText = "--:--");
+
+    menuContent.classList.remove("open");
+    alert("データを初期化しました。");
+  }
+});
+
+function formatArrivalDate(targetDate, startStr) {
+  if (!startStr) return "--:--";
+  const start = new Date(startStr);
+  
+  const hrs = String(targetDate.getHours()).padStart(2, '0');
+  const mins = String(targetDate.getMinutes()).padStart(2, '0');
+  
+  const isNextDay = targetDate.getDate() !== start.getDate() || targetDate.getMonth() !== start.getMonth();
+  
+  if (isNextDay) {
+    const dayLabels = ["日", "月", "火", "水", "木", "金", "土"];
+    return `(${dayLabels[targetDate.getDay()]})${hrs}:${mins}`;
+  }
+  return `${hrs}:${mins}`;
+}
+
+function update() {
+  localStorage.setItem("startTime", startTime.value);
+  localStorage.setItem("brm", brm.value);
+  localStorage.setItem("distance", distance.value);
+  localStorage.setItem("pcList", pcInput.value);
+
+  const now = new Date();
+  const hrs = String(now.getHours()).padStart(2, '0');
+  const mins = String(now.getMinutes()).padStart(2, '0');
+  const secs = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById("currentTime").innerText = `${hrs}:${mins}:${secs}`;
+
+  let startReady = false;
+  let start = null;
+  if (startTime.value) {
+    start = new Date(startTime.value);
+    if (!isNaN(start.getTime())) {
+      startReady = true;
+    }
+  }
+
+  const currentDist = parseFloat(distance.value) || 0;
+
+  const pcLines = pcInput.value.split("\n").filter(line => line.trim() !== "");
+  let nextPC = null;
+
+  for (let line of pcLines) {
+    // 【修正箇所】半角カンマ(,)、全角読点(、)、全角カンマ(，)のいずれでも分割できるよう正規表現に変更
+    const columns = line.split(/[,,、，]/).map(c => c.trim());
+    if (columns.length < 3) continue;
+
+    const pcDist = parseFloat(columns[2].replace(/[^\d.]/g, ""));
+    
+    if (!isNaN(pcDist) && pcDist > currentDist) {
+      nextPC = { id: columns[0], name: columns[1], dist: pcDist };
+      break;
+    }
+  }
+
+  if (nextPC) {
+    const diffDist = nextPC.dist - currentDist;
+    document.getElementById("pcLabel").innerText = `NEXT: ${nextPC.id} ${nextPC.name}`;
+    document.getElementById("pcRemainDist").innerText = `残り ${diffDist.toFixed(1)} km`;
+
+    if (startReady) {
+      const speeds = [15, 16, 17, 18, 19];
+      speeds.forEach(speed => {
+        const totalHoursFromStart = nextPC.dist / speed;
+        const arrivalDate = new Date(start.getTime() + totalHoursFromStart * 3600000);
+        document.getElementById(`sp${speed}`).innerText = formatArrivalDate(arrivalDate, startTime.value);
+      });
+    } else {
+      ["15","16","17","18","19"].forEach(s => document.getElementById(`sp${s}`).innerText = "--:--");
+    }
+  } else {
+    document.getElementById("pcLabel").innerText = `NEXT: GOAL`;
+    document.getElementById("pcRemainDist").innerText = "残り 0.0 km";
+    ["15","16","17","18","19"].forEach(s => document.getElementById(`sp${s}`).innerText = "--:--");
+  }
+
+  if (!startTime.value || !distance.value) return;
+
+  const [targetDistance, limitHours] = brm.value.split(",").map(Number);
+  let elapsed = (now - start) / 1000 / 3600;
+  if (elapsed <= 0) return;
+
+  const gross = currentDist / elapsed;
+
+  const eh = Math.floor(elapsed);
+  const em = Math.floor((elapsed - eh) * 60);
+  document.getElementById("elapsed").innerText = `${eh}時間${em}分`;
+
+  const totalRemainTime = limitHours - elapsed;
+  if (totalRemainTime > 0) {
+    const rth = Math.floor(totalRemainTime);
+    const rtm = Math.floor((totalRemainTime - rth) * 60);
+    document.getElementById("remainTime").innerText = `${rth}時間${rtm}分`;
+  } else {
+    document.getElementById("remainTime").innerText = "タイムアウト";
+  }
+  
+  document.getElementById("gross").innerText = gross.toFixed(2) + " km/h";
+  
+  const remainDist = targetDistance - currentDist;
+  document.getElementById("remainDistance").innerText = `${Math.max(0, remainDist).toFixed(1)} km`;
+
+  const predictedHours = targetDistance / gross;
+  const finishTime = new Date(start.getTime() + predictedHours * 3600000);
+  const finishStr = finishTime.toLocaleDateString("ja-JP", { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  document.getElementById("finish").innerText = finishStr;
+
+  let need = (remainDist > 0 && totalRemainTime > 0) ? (remainDist / totalRemainTime).toFixed(1) + " km/h" : "---";
+  document.getElementById("needSpeed").innerText = need;
+
+  const saving = limitHours - predictedHours;
+  const savSign = saving >= 0 ? "+" : "-";
+  const savH = Math.floor(Math.abs(saving));
+  const savM = Math.floor((Math.abs(saving) % 1) * 60);
+  
+  let statusIcon = "🔴";
+  let statusClass = "big-value red";
+  if (saving >= 2) {
+    statusIcon = "🟢";
+    statusClass = "big-value green";
+  } else if (saving >= 1) {
+    statusIcon = "🟡";
+    statusClass = "big-value yellow";
+  }
+
+  const savingElement = document.getElementById("saving");
+  savingElement.innerText = `${statusIcon} ${savSign}${savH}時間${savM}分`;
+  savingElement.className = statusClass;
+}
+
+setInterval(update, 1000);
+distance.addEventListener("input", update);
+startTime.addEventListener("change", update);
+brm.addEventListener("change", update);
+pcInput.addEventListener("input", update);
+document.addEventListener("resume", update, false);
+update();
+</script>
+</body>
+</html>
