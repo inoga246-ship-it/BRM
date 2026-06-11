@@ -86,7 +86,7 @@ textarea {
   height: 110px;
 }
 
-/* 【追加】メニュー内専用のボタン・入力欄スタイル */
+/* メニュー内専用のボタン・入力欄スタイル */
 .menu-input-row {
   display: flex;
   gap: 6px;
@@ -312,14 +312,14 @@ input[type="datetime-local"] {
     <div class="menu-trigger" id="menuTrigger">☰</div>
   </div>
 
-  <!-- 【拡張】メニューエリア：リスト保存・呼び出し機能を追加 -->
+  <!-- メニューエリア -->
   <div class="menu-content" id="menuContent">
     <div style="margin-bottom: 8px;">
       <label class="menu-label">PCリスト登録 (貼り付け用)</label>
       <textarea id="pcInput" placeholder="例:&#10;PC1, 御幸橋① フォト, 24.9km&#10;PC2、山城大橋 フォト，38.0km"></textarea>
     </div>
 
-    <!-- 【追加】名前をつけて保存機能 -->
+    <!-- 名前をつけて保存機能 -->
     <div style="margin-bottom: 10px;">
       <label class="menu-label">現在のリストを保存する</label>
       <div class="menu-input-row">
@@ -328,7 +328,7 @@ input[type="datetime-local"] {
       </div>
     </div>
 
-    <!-- 【追加】保存したリストの呼び出し・削除機能 -->
+    <!-- 保存したリストの呼び出し・削除機能 -->
     <div style="margin-bottom: 15px;">
       <label class="menu-label">保存済みリストの呼び出し / 削除</label>
       <div class="menu-input-row">
@@ -339,7 +339,8 @@ input[type="datetime-local"] {
       </div>
     </div>
 
-    <button class="btn-reset" id="resetBtn">全データをリセット</button>
+    <!-- 【変更】ボタン名を「リセット」に変更 -->
+    <button class="btn-reset" id="resetBtn">リセット</button>
   </div>
 
   <div class="top-row">
@@ -422,7 +423,7 @@ const resetBtn = document.getElementById("resetBtn");
 const pcPrevBtn = document.getElementById("pcPrevBtn");
 const pcNextBtn = document.getElementById("pcNextBtn");
 
-// 【追加】保存機能用エレメント
+// 保存機能用エレメント
 const saveName = document.getElementById("saveName");
 const saveBtn = document.getElementById("saveBtn");
 const savedListsSelect = document.getElementById("savedListsSelect");
@@ -441,7 +442,7 @@ pcInput.value = localStorage.getItem("pcList") || defaultPCList;
 
 menuTrigger.addEventListener("click", () => menuContent.classList.toggle("open"));
 
-// 【追加】ローカルストレージから保存済みリスト群をロードしてセレクトボックスを更新する関数
+// ローカルストレージから保存済みリスト群をロードしてセレクトボックスを更新する関数
 function loadSavedListsDropdown() {
   const savedData = localStorage.getItem("customPCLists");
   let lists = savedData ? JSON.parse(savedData) : {};
@@ -473,7 +474,7 @@ function loadSavedListsDropdown() {
   });
 }
 
-// 【追加】保存ボタンを押したとき
+// 名前をつけて保存ボタンを押したとき
 saveBtn.addEventListener("click", () => {
   const name = saveName.value.trim();
   const text = pcInput.value.trim();
@@ -493,12 +494,12 @@ saveBtn.addEventListener("click", () => {
   lists[name] = text;
   localStorage.setItem("customPCLists", JSON.stringify(lists));
   
-  saveName.value = ""; // 入力欄をクリア
-  loadSavedListsDropdown(); // 一覧を更新
+  saveName.value = ""; 
+  loadSavedListsDropdown(); 
   alert("リスト「" + name + "」を保存しました。");
 });
 
-// 【追加】セレクトボックスでリストを選択（呼び出し）したとき
+// セレクトボックスでリストを選択（呼び出し）したとき
 savedListsSelect.addEventListener("change", () => {
   const selectedName = savedListsSelect.value;
   if (!selectedName) return;
@@ -508,12 +509,12 @@ savedListsSelect.addEventListener("change", () => {
   
   if (lists[selectedName]) {
     pcInput.value = lists[selectedName];
-    update(true); // メーター表示を即座に強制更新
+    update(true); 
     alert("「" + selectedName + "」のリストを読み込みました。");
   }
 });
 
-// 【追加】削除ボタンを押したとき
+// 削除ボタンを押したとき
 deleteBtn.addEventListener("click", () => {
   const selectedName = savedListsSelect.value;
   if (!selectedName) {
@@ -528,21 +529,27 @@ deleteBtn.addEventListener("click", () => {
     delete lists[selectedName];
     localStorage.setItem("customPCLists", JSON.stringify(lists));
     
-    loadSavedListsDropdown(); // 一覧を更新
+    loadSavedListsDropdown(); 
     alert("削除しました。");
   }
 });
 
+// 【変更】リセットボタン処理（指定された3項目のみクリア、保存データは維持）
 resetBtn.addEventListener("click", () => {
-  if (confirm("入力中の距離や設定を含め、すべてのデータをリセットしますか？（保存したリスト一覧も消去されます）")) {
-    localStorage.clear();
+  if (confirm("「START日時」「現在距離」「PCリスト登録」の内容をリセットしますか？（※保存したリスト一覧は削除されません）")) {
+    
+    // 指定された個別キーのみローカルストレージから削除
+    localStorage.removeItem("startTime");
+    localStorage.removeItem("distance");
+    localStorage.removeItem("pcList");
 
+    // 各入力欄のクリア
     startTime.value = "";
     distance.value = "";
-    brm.value = "200,13.5";
     pcInput.value = "";
     saveName.value = "";
 
+    // メーター等、画面の初期化
     document.getElementById("elapsed").innerText = "--";
     document.getElementById("remainTime").innerText = "--";
     document.getElementById("gross").innerText = "--";
@@ -556,9 +563,12 @@ resetBtn.addEventListener("click", () => {
     
     ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
 
-    loadSavedListsDropdown();
+    // ドロップダウンを再選択（選択状態を戻す）
+    savedListsSelect.value = "";
+
     menuContent.classList.remove("open");
-    alert("データをすべて初期化しました。");
+    update(true);
+    alert("指定された項目をリセットしました。");
   }
 });
 
@@ -737,7 +747,7 @@ startTime.addEventListener("change", () => update(false));
 brm.addEventListener("change", () => update(false));
 document.addEventListener("resume", () => update(false), false);
 
-// 【初回起動処理】
+// 初回起動処理
 loadSavedListsDropdown();
 update(true);
 </script>
