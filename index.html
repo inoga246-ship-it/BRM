@@ -101,8 +101,16 @@ textarea {
 .card {
   background: #1a1a1a;
   border-radius: 10px;
+  padding: 10px 12px;
+}
+
+/* 【変更】PC情報より下、および現在距離・時間の枠をスリム（縦6px）にする専用スタイル */
+.slim-card {
+  background: #1a1a1a;
+  border-radius: 10px;
   padding: 6px 12px; 
 }
+
 label {
   display: block;
   font-size: 13px;
@@ -133,9 +141,8 @@ input[type="datetime-local"] {
   flex: 1;
 }
 
-/* 現在距離と現在時間の並び */
+/* 【変更】現在距離と現在時間の高さを、他スリム枠（約60px）と同じになるよう高さを解除 */
 .time-dist-height {
-  height: 90px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -152,7 +159,7 @@ input[type="datetime-local"] {
   font-weight: bold;
   color: #00e5ff; 
   text-align: center;
-  padding: 10px 0;
+  padding: 4px 0; /* 縦幅に合わせてパディングを縮小 */
 }
 
 /* 速度別PC到着時間カード */
@@ -218,18 +225,21 @@ input[type="datetime-local"] {
   text-align: center;
 }
 
-/* 貯金時間カード */
-.big-card {
+/* 【変更】貯金時間の外枠を少しスリム(10px)にする専用スタイル */
+.slim-big-card {
   background: #1a1a1a;
   border-radius: 10px;
   padding: 10px 12px; 
   margin-top: 4px;
 }
+/* 【修正】文字サイズを前回の1ポイント縮小(41px)にし、確実に「中央寄せ」が維持されるよう指定 */
 .big-value {
   font-size: 41px; 
   font-weight: bold;
   text-align: center;
   margin-top: 5px;
+  display: block;
+  width: 100%;
 }
 
 /* 製作者情報（フッター）のスタイル */
@@ -252,13 +262,11 @@ input[type="datetime-local"] {
 <body>
 <div class="container">
 
-  <!-- ヘッダー部分 -->
   <div class="header">
     <div class="header-title">BRM PACE MANAGER</div>
     <div class="menu-trigger" id="menuTrigger">☰</div>
   </div>
 
-  <!-- メニュー -->
   <div class="menu-content" id="menuContent">
     <div style="margin-bottom: 10px;">
       <label class="menu-label">PCリスト登録 (貼り付け用)</label>
@@ -267,7 +275,6 @@ input[type="datetime-local"] {
     <button class="btn-reset" id="resetBtn">全データをリセット</button>
   </div>
 
-  <!-- 1段目：BRM設定とSTART日時 -->
   <div class="top-row">
     <div class="card half">
       <label>BRM設定</label>
@@ -284,15 +291,14 @@ input[type="datetime-local"] {
     </div>
   </div>
 
-  <!-- 2段目：現在距離 ＆ 現在時間 -->
   <div class="top-row">
-    <div class="card half time-dist-height">
+    <div class="slim-card half time-dist-height">
       <label style="text-align: center;">現在距離</label>
       <div class="flex-centered">
-        <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:24px; color:#00ff66; padding: 4px; text-align: center;">
+        <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:24px; color:#00ff66; padding: 2px; text-align: center; background: transparent;">
       </div>
     </div>
-    <div class="card half time-dist-height">
+    <div class="slim-card half time-dist-height">
       <label style="text-align: center;">現在時間</label>
       <div class="flex-centered">
         <div id="currentTime" class="current-time-display">--:--:--</div>
@@ -300,13 +306,11 @@ input[type="datetime-local"] {
     </div>
   </div>
 
-  <!-- 3段目：速度別到着予定付き NEXT PCカード -->
   <div class="card full-width-pc-card">
     <div id="pcLabel" class="pc-title-label">NEXT: PC-</div>
     <div class="pc-main-row">
       <div class="value highlight" id="pcRemainDist" style="font-size:26px; text-align: center;">残り -- km</div>
     </div>
-    <!-- 15km/h 〜 19km/h のスタート固定速度テーブル -->
     <table class="pc-speed-table">
       <tr>
         <th>15km/h</th>
@@ -325,18 +329,16 @@ input[type="datetime-local"] {
     </table>
   </div>
 
-  <!-- 4段目：その他項目一覧 -->
   <div class="grid">
-    <div class="card"><div class="title">経過時間</div><div class="value" id="elapsed">--</div></div>
-    <div class="card"><div class="title">残り時間</div><div class="value" id="remainTime">--</div></div>
-    <div class="card"><div class="title">グロス速度</div><div class="value" id="gross">--</div></div>
-    <div class="card"><div class="title">残り距離</div><div class="value" id="remainDistance">--</div></div>
-    <div class="card"><div class="title">完走予想</div><div class="value" id="finish">--</div></div>
-    <div class="card"><div class="title">必要平均</div><div class="value" id="needSpeed">--</div></div>
+    <div class="slim-card"><div class="title">経過時間</div><div class="value" id="elapsed">--</div></div>
+    <div class="slim-card"><div class="title">残り時間</div><div class="value" id="remainTime">--</div></div>
+    <div class="slim-card"><div class="title">グロス速度</div><div class="value" id="gross">--</div></div>
+    <div class="slim-card"><div class="title">残り距離</div><div class="value" id="remainDistance">--</div></div>
+    <div class="slim-card"><div class="title">完走予想</div><div class="value" id="finish">--</div></div>
+    <div class="slim-card"><div class="title">必要平均</div><div class="value" id="needSpeed">--</div></div>
   </div>
 
-  <!-- 5段目：貯金時間 -->
-  <div class="big-card">
+  <div class="slim-big-card">
     <div class="title" style="text-align: center; font-size: 15px;">貯金時間</div>
     <div class="big-value" id="saving">--</div>
   </div>
@@ -381,11 +383,11 @@ resetBtn.addEventListener("click", () => {
     document.getElementById("finish").innerText = "--";
     document.getElementById("needSpeed").innerText = "--";
     document.getElementById("saving").innerText = "--";
-    document.getElementById("saving").className = "big-value";
+    document.getElementById("saving").className = "big-value"; 
     document.getElementById("pcLabel").innerText = "NEXT: PC-";
     document.getElementById("pcRemainDist").innerText = "残り -- km";
     
-    ["15","16","17","18","19"].forEach(s => document.getElementById(`sp${s}`).innerText = "--:--");
+    ["15","16","17","18","19"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
 
     menuContent.classList.remove("open");
     alert("データを初期化しました。");
@@ -403,10 +405,9 @@ function formatArrivalDate(targetDate, startStr) {
   
   if (isNextDay) {
     const dayLabels = ["日", "月", "火", "水", "木", "金", "土"];
-    // 【修正】`(${dayLabels[...]})` から `${dayLabels[...]})`（後ろかっこだけ）に変更
-    return `${dayLabels[targetDate.getDay()])}${hrs}:${mins}`;
+    return dayLabels[targetDate.getDay()] + ")" + hrs + ":" + mins;
   }
-  return `${hrs}:${mins}`;
+  return hrs + ":" + mins;
 }
 
 function update() {
@@ -419,7 +420,7 @@ function update() {
   const hrs = String(now.getHours()).padStart(2, '0');
   const mins = String(now.getMinutes()).padStart(2, '0');
   const secs = String(now.getSeconds()).padStart(2, '0');
-  document.getElementById("currentTime").innerText = `${hrs}:${mins}:${secs}`;
+  document.getElementById("currentTime").innerText = hrs + ":" + mins + ":" + secs;
 
   let startReady = false;
   let start = null;
@@ -449,23 +450,23 @@ function update() {
 
   if (nextPC) {
     const diffDist = nextPC.dist - currentDist;
-    document.getElementById("pcLabel").innerText = `NEXT: ${nextPC.id} ${nextPC.name}`;
-    document.getElementById("pcRemainDist").innerText = `残り ${diffDist.toFixed(1)} km`;
+    document.getElementById("pcLabel").innerText = "NEXT: " + nextPC.id + " " + nextPC.name;
+    document.getElementById("pcRemainDist").innerText = "残り " + diffDist.toFixed(1) + " km";
 
     if (startReady) {
       const speeds = [15, 16, 17, 18, 19];
       speeds.forEach(speed => {
         const totalHoursFromStart = nextPC.dist / speed;
         const arrivalDate = new Date(start.getTime() + totalHoursFromStart * 3600000);
-        document.getElementById(`sp${speed}`).innerText = formatArrivalDate(arrivalDate, startTime.value);
+        document.getElementById("sp" + speed).innerText = formatArrivalDate(arrivalDate, startTime.value);
       });
     } else {
-      ["15","16","17","18","19"].forEach(s => document.getElementById(`sp${s}`).innerText = "--:--");
+      ["15","16","17","18","19"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
     }
   } else {
-    document.getElementById("pcLabel").innerText = `NEXT: GOAL`;
+    document.getElementById("pcLabel").innerText = "NEXT: GOAL";
     document.getElementById("pcRemainDist").innerText = "残り 0.0 km";
-    ["15","16","17","18","19"].forEach(s => document.getElementById(`sp${s}`).innerText = "--:--");
+    ["15","16","17","18","19"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
   }
 
   if (!startTime.value || !distance.value) return;
@@ -478,13 +479,13 @@ function update() {
 
   const eh = Math.floor(elapsed);
   const em = Math.floor((elapsed - eh) * 60);
-  document.getElementById("elapsed").innerText = `${eh}時間${em}分`;
+  document.getElementById("elapsed").innerText = eh + "時間" + em + "分";
 
   const totalRemainTime = limitHours - elapsed;
   if (totalRemainTime > 0) {
     const rth = Math.floor(totalRemainTime);
     const rtm = Math.floor((totalRemainTime - rth) * 60);
-    document.getElementById("remainTime").innerText = `${rth}時間${rtm}分`;
+    document.getElementById("remainTime").innerText = rth + "時間" + rtm + "分";
   } else {
     document.getElementById("remainTime").innerText = "タイムアウト";
   }
@@ -492,7 +493,7 @@ function update() {
   document.getElementById("gross").innerText = gross.toFixed(2) + " km/h";
   
   const remainDist = targetDistance - currentDist;
-  document.getElementById("remainDistance").innerText = `${Math.max(0, remainDist).toFixed(1)} km`;
+  document.getElementById("remainDistance").innerText = Math.max(0, remainDist).toFixed(1) + " km";
 
   const predictedHours = targetDistance / gross;
   const finishTime = new Date(start.getTime() + predictedHours * 3600000);
@@ -508,7 +509,7 @@ function update() {
   const savM = Math.floor((Math.abs(saving) % 1) * 60);
   
   let statusIcon = "🔴";
-  let statusClass = "big-value red";
+  let statusClass = "big-value red"; 
   if (saving >= 2) {
     statusIcon = "🟢";
     statusClass = "big-value green";
@@ -518,7 +519,7 @@ function update() {
   }
 
   const savingElement = document.getElementById("saving");
-  savingElement.innerText = `${statusIcon} ${savSign}${savH}時間${savM}分`;
+  savingElement.innerText = statusIcon + " " + savSign + savH + "時間" + savM + "分";
   savingElement.className = statusClass;
 }
 
