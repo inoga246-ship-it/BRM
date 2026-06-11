@@ -101,7 +101,7 @@ textarea {
 .card {
   background: #1a1a1a;
   border-radius: 10px;
-  padding: 6px 12px; /* 【修正】縦パディングを 10px から 6px へ縮小 */
+  padding: 6px 12px; 
 }
 label {
   display: block;
@@ -155,7 +155,7 @@ input[type="datetime-local"] {
   padding: 10px 0;
 }
 
-/* 速度別PC到着時間カード（ここはサイズ維持） */
+/* 速度別PC到着時間カード */
 .full-width-pc-card {
   width: 100%;
   background: #0a192f;      
@@ -222,11 +222,11 @@ input[type="datetime-local"] {
 .big-card {
   background: #1a1a1a;
   border-radius: 10px;
-  padding: 10px 12px; /* 【修正】縦パディングを 15px から 10px へ縮小 */
+  padding: 10px 12px; 
   margin-top: 4px;
 }
 .big-value {
-  font-size: 41px; /* 【修正】フォントサイズを 42px から 41px へ1ポイント縮小 */
+  font-size: 41px; 
   font-weight: bold;
   text-align: center;
   margin-top: 5px;
@@ -252,11 +252,13 @@ input[type="datetime-local"] {
 <body>
 <div class="container">
 
+  <!-- ヘッダー部分 -->
   <div class="header">
     <div class="header-title">BRM PACE MANAGER</div>
     <div class="menu-trigger" id="menuTrigger">☰</div>
   </div>
 
+  <!-- メニュー -->
   <div class="menu-content" id="menuContent">
     <div style="margin-bottom: 10px;">
       <label class="menu-label">PCリスト登録 (貼り付け用)</label>
@@ -265,6 +267,7 @@ input[type="datetime-local"] {
     <button class="btn-reset" id="resetBtn">全データをリセット</button>
   </div>
 
+  <!-- 1段目：BRM設定とSTART日時 -->
   <div class="top-row">
     <div class="card half">
       <label>BRM設定</label>
@@ -281,6 +284,7 @@ input[type="datetime-local"] {
     </div>
   </div>
 
+  <!-- 2段目：現在距離 ＆ 現在時間 -->
   <div class="top-row">
     <div class="card half time-dist-height">
       <label style="text-align: center;">現在距離</label>
@@ -296,11 +300,13 @@ input[type="datetime-local"] {
     </div>
   </div>
 
+  <!-- 3段目：速度別到着予定付き NEXT PCカード -->
   <div class="card full-width-pc-card">
     <div id="pcLabel" class="pc-title-label">NEXT: PC-</div>
     <div class="pc-main-row">
       <div class="value highlight" id="pcRemainDist" style="font-size:26px; text-align: center;">残り -- km</div>
     </div>
+    <!-- 15km/h 〜 19km/h のスタート固定速度テーブル -->
     <table class="pc-speed-table">
       <tr>
         <th>15km/h</th>
@@ -319,6 +325,7 @@ input[type="datetime-local"] {
     </table>
   </div>
 
+  <!-- 4段目：その他項目一覧 -->
   <div class="grid">
     <div class="card"><div class="title">経過時間</div><div class="value" id="elapsed">--</div></div>
     <div class="card"><div class="title">残り時間</div><div class="value" id="remainTime">--</div></div>
@@ -328,6 +335,7 @@ input[type="datetime-local"] {
     <div class="card"><div class="title">必要平均</div><div class="value" id="needSpeed">--</div></div>
   </div>
 
+  <!-- 5段目：貯金時間 -->
   <div class="big-card">
     <div class="title" style="text-align: center; font-size: 15px;">貯金時間</div>
     <div class="big-value" id="saving">--</div>
@@ -395,7 +403,8 @@ function formatArrivalDate(targetDate, startStr) {
   
   if (isNextDay) {
     const dayLabels = ["日", "月", "火", "水", "木", "金", "土"];
-    return `(${dayLabels[targetDate.getDay()]})${hrs}:${mins}`;
+    // 【修正】`(${dayLabels[...]})` から `${dayLabels[...]})`（後ろかっこだけ）に変更
+    return `${dayLabels[targetDate.getDay()])}${hrs}:${mins}`;
   }
   return `${hrs}:${mins}`;
 }
