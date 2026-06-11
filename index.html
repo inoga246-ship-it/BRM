@@ -57,7 +57,7 @@ input, select, textarea {
   flex-shrink: 0;
 }
 
-/* メニューエリア */
+/* メメニューエリア */
 .menu-content {
   display: none;
   background: #222;
@@ -97,26 +97,39 @@ textarea {
   margin-top: 15px;
 }
 
-/* 共通カードスタイル */
-.card {
-  background: #1a1a1a;
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
-/* スリムスタイル */
+/* 【変更】貯金時間、PC情報以外のすべての枠（カード）の大きさとデザインを完全統一 */
 .slim-card {
   background: #1a1a1a;
   border-radius: 10px;
   padding: 6px 12px; 
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-label {
+/* 【変更】BRM設定とSTART日時のコンテナ用スタイル（センター配置用） */
+.card-center {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+/* 【変更】上段の各ラベルを中央揃えに変更 */
+.label-center {
   display: block;
   font-size: 13px;
   color: #bbb;
   margin-bottom: 3px;
+  text-align: center;
 }
+.title {
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 2px;
+}
+
+/* 【変更】上段の入力欄テキストも中央揃えに変更 */
 input, select {
   width: 100%;
   padding: 10px;
@@ -125,6 +138,8 @@ input, select {
   border-radius: 6px;
   background: #333;
   color: #fff;
+  text-align: center;
+  text-align-last: center; /* selectの文字を中央に寄せるための指定 */
 }
 input[type="datetime-local"] {
   font-size: 13px;
@@ -141,37 +156,29 @@ input[type="datetime-local"] {
   flex: 1;
 }
 
-/* 現在距離と現在時間の並び */
-.time-dist-height {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.flex-centered {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
+/* 現在時間表示のフォントサイズ調整 */
 .current-time-display {
   font-size: 24px;
   font-weight: bold;
   color: #00e5ff; 
   text-align: center;
-  padding: 4px 0;
+}
+.value {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
 }
 
-/* 速度別PC到着時間カード */
+/* 速度別PC到着時間カード（これ専用の独立デザイン） */
 .full-width-pc-card {
   width: 100%;
   background: #0a192f;      
   border: 1px solid #00d2ff; 
+  border-radius: 10px;
   padding: 12px;
   margin-bottom: 8px;
 }
 
-/* 【変更】PC情報ヘッダーを左右ボタン付きのレイアウトに調整 */
 .pc-header-row {
   display: flex;
   justify-content: space-between;
@@ -235,41 +242,32 @@ input[type="datetime-local"] {
   color: #ffffff;
 }
 
-/* グリッドレイアウト */
+/* 【変更】現在距離・現在時間を含めたすべての情報枠（2列グリッド） */
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 8px;
 }
-.title {
-  font-size: 13px;
-  color: #aaa;
-  margin-bottom: 2px;
-}
-.value {
-  font-size: 24px;
-  font-weight: bold;
-  text-align: center;
-}
 
-/* 貯金時間カード */
+/* 【変更】貯金時間カード：フォント縮小に伴いパディングを少し詰め、高さを最適化 */
 .slim-big-card {
   background: #1a1a1a;
   border-radius: 10px;
-  padding: 10px 12px; 
+  padding: 6px 12px; 
   margin-top: 4px;
 }
+/* 【変更】文字サイズを 41px から 38px に 3ポイント縮小 */
 .big-value {
-  font-size: 41px; 
+  font-size: 38px; 
   font-weight: bold;
   text-align: center;
-  margin-top: 5px;
+  margin-top: 2px;
   display: block;
   width: 100%;
 }
 
-/* 製作者情報（フッター）のスタイル */
+/* フッター */
 .footer {
   margin-top: 25px;
   margin-bottom: 15px;
@@ -302,9 +300,10 @@ input[type="datetime-local"] {
     <button class="btn-reset" id="resetBtn">全データをリセット</button>
   </div>
 
+  <!-- 【変更】上段の「BRM設定」「START日時」枠を中央揃え（card-center）に変更 -->
   <div class="top-row">
-    <div class="card half">
-      <label>BRM設定</label>
+    <div class="card-center half">
+      <label class="label-center">BRM設定</label>
       <select id="brm">
         <option value="200,13.5">200km (13.5h)</option>
         <option value="300,20">300km (20h)</option>
@@ -312,27 +311,25 @@ input[type="datetime-local"] {
         <option value="600,40">600km (40h)</option>
       </select>
     </div>
-    <div class="card half">
-      <label>START日時</label>
+    <div class="card-center half">
+      <label class="label-center">START日時</label>
       <input type="datetime-local" id="startTime">
     </div>
   </div>
 
-  <div class="top-row">
-    <div class="slim-card half time-dist-height">
-      <label style="text-align: center;">現在距離</label>
-      <div class="flex-centered">
-        <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:24px; color:#00ff66; padding: 2px; text-align: center; background: transparent;">
-      </div>
+  <!-- 【変更】現在距離と現在時間の枠を、下の情報グリッドと同じ「slim-card」に完全統一 -->
+  <div class="grid">
+    <div class="slim-card">
+      <div class="title" style="text-align: center;">現在距離</div>
+      <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:24px; color:#00ff66; padding: 2px; text-align: center; background: transparent;">
     </div>
-    <div class="slim-card half time-dist-height">
-      <label style="text-align: center;">現在時間</label>
-      <div class="flex-centered">
-        <div id="currentTime" class="current-time-display">--:--:--</div>
-      </div>
+    <div class="slim-card">
+      <div class="title" style="text-align: center;">現在時間</div>
+      <div id="currentTime" class="current-time-display">--:--:--</div>
     </div>
   </div>
 
+  <!-- PCカード情報 -->
   <div class="card full-width-pc-card">
     <div class="pc-header-row">
       <button class="pc-nav-btn" id="pcPrevBtn">◀ 前</button>
@@ -387,10 +384,9 @@ const pcNextBtn = document.getElementById("pcNextBtn");
 
 const defaultPCList = "PC1, 御幸橋① フォト, 24.9km\nPC2, 山城大橋 フォト, 38.0km";
 
-// 表示切り替え用の管理変数
 let globalPCList = [];
-let currentDisplayIndex = -1; // 現在画面に表示しているPCのインデックス
-let autoTrackIdx = -1;        // 自動計算された「本来のNEXT PC」のインデックス
+let currentDisplayIndex = -1; 
+let autoTrackIdx = -1;        
 
 startTime.value = localStorage.getItem("startTime") || "";
 brm.value = localStorage.getItem("brm") || "200,13.5";
@@ -426,7 +422,6 @@ resetBtn.addEventListener("click", () => {
   }
 });
 
-// 【追加】「前」ボタンが押されたとき
 pcPrevBtn.addEventListener("click", () => {
   if (globalPCList.length === 0) return;
   if (currentDisplayIndex > 0) {
@@ -435,7 +430,6 @@ pcPrevBtn.addEventListener("click", () => {
   }
 });
 
-// 【追加】「次」ボタンが押されたとき
 pcNextBtn.addEventListener("click", () => {
   if (globalPCList.length === 0) return;
   if (currentDisplayIndex < globalPCList.length - 1) {
@@ -460,7 +454,6 @@ function formatArrivalDate(targetDate, startStr) {
   return hrs + ":" + mins;
 }
 
-// 【追加】手動でPC表示を切り替えた際、パーツ部分だけを即座に再描画する関数
 function updateDisplayOnly() {
   if (globalPCList.length === 0 || currentDisplayIndex === -1) return;
   
@@ -468,7 +461,6 @@ function updateDisplayOnly() {
   const currentDist = parseFloat(distance.value) || 0;
   const diffDist = selectedPC.dist - currentDist;
 
-  // ラベルテキストの組み立て
   let prefix = "";
   if (currentDisplayIndex === autoTrackIdx) {
     prefix = "NEXT: ";
@@ -478,7 +470,7 @@ function updateDisplayOnly() {
     prefix = "先々: ";
   }
 
-  document.getElementById("pcLabel").innerText = prefix + selectedPC.id + " " + selectedPC.name;
+  document.getElementById("pcLabel").innerText = prefix + selectedPC.id + " " + selectedPC.name + "（" + selectedPC.dist.toFixed(1) + "km）";
 
   if (diffDist >= 0) {
     document.getElementById("pcRemainDist").innerText = "残り " + diffDist.toFixed(1) + " km";
@@ -526,7 +518,6 @@ function update(isDistanceOrInputChanged = false) {
 
   const currentDist = parseFloat(distance.value) || 0;
 
-  // PCリストをパースして全データを一旦配列化する
   const pcLines = pcInput.value.split("\n").filter(line => line.trim() !== "");
   globalPCList = [];
   
@@ -539,7 +530,6 @@ function update(isDistanceOrInputChanged = false) {
     }
   }
 
-  // 現在距離から「本来のNEXT PC」のインデックスを自動算出
   let detectedTrackIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
   for (let i = 0; i < globalPCList.length; i++) {
     if (globalPCList[i].dist > currentDist) {
@@ -550,12 +540,10 @@ function update(isDistanceOrInputChanged = false) {
   
   autoTrackIdx = detectedTrackIdx;
 
-  // 距離の変更があった場合、または初回時は自動的にNEXT PCにフォーカスを合わせる
   if (isDistanceOrInputChanged || currentDisplayIndex === -1 || currentDisplayIndex >= globalPCList.length) {
     currentDisplayIndex = autoTrackIdx;
   }
 
-  // PC表示部分を更新
   if (globalPCList.length > 0 && currentDisplayIndex !== -1) {
     updateDisplayOnly();
   } else {
@@ -564,7 +552,6 @@ function update(isDistanceOrInputChanged = false) {
     ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
   }
 
-  // 下半分のリアルタイム集計計算
   if (!startTime.value || !distance.value) return;
 
   const [targetDistance, limitHours] = brm.value.split(",").map(Number);
@@ -619,18 +606,13 @@ function update(isDistanceOrInputChanged = false) {
   savingElement.className = statusClass;
 }
 
-// 1秒ごとの定期自動更新（手動選択位置を崩さない）
 setInterval(() => update(false), 1000);
-
-// 入力イベント（距離やリスト変更時は自動で最新のNEXT PCに合わせ直す）
 distance.addEventListener("input", () => update(true));
 pcInput.addEventListener("input", () => update(true));
-
 startTime.addEventListener("change", () => update(false));
 brm.addEventListener("change", () => update(false));
 document.addEventListener("resume", () => update(false), false);
 
-// 初回起動
 update(true);
 </script>
 </body>
