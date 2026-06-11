@@ -104,7 +104,7 @@ textarea {
   padding: 10px 12px;
 }
 
-/* PC情報より下、および現在距離・時間の枠をスリムにする専用スタイル */
+/* スリムスタイル */
 .slim-card {
   background: #1a1a1a;
   border-radius: 10px;
@@ -170,13 +170,38 @@ input[type="datetime-local"] {
   padding: 12px;
   margin-bottom: 8px;
 }
+
+/* 【変更】PC情報ヘッダーを左右ボタン付きのレイアウトに調整 */
+.pc-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.pc-nav-btn {
+  background: #113355;
+  color: #00d2ff;
+  border: 1px solid #00d2ff;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.pc-nav-btn:active {
+  background: #00d2ff;
+  color: #000;
+}
 .pc-title-label {
   color: #00d2ff;            
   font-size: 15px;           
   font-weight: bold;
   line-height: 1.3;
-  margin-bottom: 4px;
+  text-align: center;
+  flex: 1;
+  padding: 0 4px;
 }
+
 .pc-main-row {
   display: flex;
   justify-content: center; 
@@ -186,11 +211,11 @@ input[type="datetime-local"] {
   padding-bottom: 6px;
 }
 
-/* 【変更】速度テーブルを 3列×2段 のグリッドレイアウトへ刷新 */
+/* 速度別時間テーブル（グリッド） */
 .pc-speed-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3列に等分割 */
-  gap: 8px 4px; /* 縦の隙間を少し広め、横を狭めに設定 */
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 8px 4px; 
   text-align: center;
 }
 .pc-speed-cell {
@@ -309,7 +334,12 @@ input[type="datetime-local"] {
   </div>
 
   <div class="card full-width-pc-card">
-    <div id="pcLabel" class="pc-title-label">NEXT: PC-</div>
+    <div class="pc-header-row">
+      <button class="pc-nav-btn" id="pcPrevBtn">◀ 前</button>
+      <div id="pcLabel" class="pc-title-label">NEXT: PC-</div>
+      <button class="pc-nav-btn" id="pcNextBtn">次 ▶</button>
+    </div>
+    
     <div class="pc-main-row">
       <div class="value highlight" id="pcRemainDist" style="font-size:26px; text-align: center;">残り -- km</div>
     </div>
@@ -352,8 +382,15 @@ const pcInput = document.getElementById("pcInput");
 const menuTrigger = document.getElementById("menuTrigger");
 const menuContent = document.getElementById("menuContent");
 const resetBtn = document.getElementById("resetBtn");
+const pcPrevBtn = document.getElementById("pcPrevBtn");
+const pcNextBtn = document.getElementById("pcNextBtn");
 
 const defaultPCList = "PC1, 御幸橋① フォト, 24.9km\nPC2, 山城大橋 フォト, 38.0km";
+
+// 表示切り替え用の管理変数
+let globalPCList = [];
+let currentDisplayIndex = -1; // 現在画面に表示しているPCのインデックス
+let autoTrackIdx = -1;        // 自動計算された「本来のNEXT PC」のインデックス
 
 startTime.value = localStorage.getItem("startTime") || "";
 brm.value = localStorage.getItem("brm") || "200,13.5";
@@ -382,11 +419,28 @@ resetBtn.addEventListener("click", () => {
     document.getElementById("pcLabel").innerText = "NEXT: PC-";
     document.getElementById("pcRemainDist").innerText = "残り -- km";
     
-    // リセット対象に "20" を追加
     ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
 
     menuContent.classList.remove("open");
     alert("データを初期化しました。");
+  }
+});
+
+// 【追加】「前」ボタンが押されたとき
+pcPrevBtn.addEventListener("click", () => {
+  if (globalPCList.length === 0) return;
+  if (currentDisplayIndex > 0) {
+    currentDisplayIndex--;
+    updateDisplayOnly();
+  }
+});
+
+// 【追加】「次」ボタンが押されたとき
+pcNextBtn.addEventListener("click", () => {
+  if (globalPCList.length === 0) return;
+  if (currentDisplayIndex < globalPCList.length - 1) {
+    currentDisplayIndex++;
+    updateDisplayOnly();
   }
 });
 
@@ -406,7 +460,52 @@ function formatArrivalDate(targetDate, startStr) {
   return hrs + ":" + mins;
 }
 
-function update() {
+// 【追加】手動でPC表示を切り替えた際、パーツ部分だけを即座に再描画する関数
+function updateDisplayOnly() {
+  if (globalPCList.length === 0 || currentDisplayIndex === -1) return;
+  
+  const selectedPC = globalPCList[currentDisplayIndex];
+  const currentDist = parseFloat(distance.value) || 0;
+  const diffDist = selectedPC.dist - currentDist;
+
+  // ラベルテキストの組み立て
+  let prefix = "";
+  if (currentDisplayIndex === autoTrackIdx) {
+    prefix = "NEXT: ";
+  } else if (currentDisplayIndex < autoTrackIdx) {
+    prefix = "通過済: ";
+  } else {
+    prefix = "先々: ";
+  }
+
+  document.getElementById("pcLabel").innerText = prefix + selectedPC.id + " " + selectedPC.name;
+
+  if (diffDist >= 0) {
+    document.getElementById("pcRemainDist").innerText = "残り " + diffDist.toFixed(1) + " km";
+  } else {
+    document.getElementById("pcRemainDist").innerText = "通過後 " + Math.abs(diffDist).toFixed(1) + " km";
+  }
+
+  let startReady = false;
+  let start = null;
+  if (startTime.value) {
+    start = new Date(startTime.value);
+    if (!isNaN(start.getTime())) startReady = true;
+  }
+
+  if (startReady) {
+    const speeds = [15, 16, 17, 18, 19, 20];
+    speeds.forEach(speed => {
+      const totalHoursFromStart = selectedPC.dist / speed;
+      const arrivalDate = new Date(start.getTime() + totalHoursFromStart * 3600000);
+      document.getElementById("sp" + speed).innerText = formatArrivalDate(arrivalDate, startTime.value);
+    });
+  } else {
+    ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
+  }
+}
+
+function update(isDistanceOrInputChanged = false) {
   localStorage.setItem("startTime", startTime.value);
   localStorage.setItem("brm", brm.value);
   localStorage.setItem("distance", distance.value);
@@ -422,50 +521,50 @@ function update() {
   let start = null;
   if (startTime.value) {
     start = new Date(startTime.value);
-    if (!isNaN(start.getTime())) {
-      startReady = true;
-    }
+    if (!isNaN(start.getTime())) startReady = true;
   }
 
   const currentDist = parseFloat(distance.value) || 0;
 
+  // PCリストをパースして全データを一旦配列化する
   const pcLines = pcInput.value.split("\n").filter(line => line.trim() !== "");
-  let nextPC = null;
-
+  globalPCList = [];
+  
   for (let line of pcLines) {
     const columns = line.split(/[,,、，]/).map(c => c.trim());
     if (columns.length < 3) continue;
-
     const pcDist = parseFloat(columns[2].replace(/[^\d.]/g, ""));
-    
-    if (!isNaN(pcDist) && pcDist > currentDist) {
-      nextPC = { id: columns[0], name: columns[1], dist: pcDist };
-      break;
+    if (!isNaN(pcDist)) {
+      globalPCList.push({ id: columns[0], name: columns[1], dist: pcDist });
     }
   }
 
-  if (nextPC) {
-    const diffDist = nextPC.dist - currentDist;
-    document.getElementById("pcLabel").innerText = "NEXT: " + nextPC.id + " " + nextPC.name;
-    document.getElementById("pcRemainDist").innerText = "残り " + diffDist.toFixed(1) + " km";
-
-    if (startReady) {
-      // 【変更】計算ループの配列に 20 を追加
-      const speeds = [15, 16, 17, 18, 19, 20];
-      speeds.forEach(speed => {
-        const totalHoursFromStart = nextPC.dist / speed;
-        const arrivalDate = new Date(start.getTime() + totalHoursFromStart * 3600000);
-        document.getElementById("sp" + speed).innerText = formatArrivalDate(arrivalDate, startTime.value);
-      });
-    } else {
-      ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
+  // 現在距離から「本来のNEXT PC」のインデックスを自動算出
+  let detectedTrackIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
+  for (let i = 0; i < globalPCList.length; i++) {
+    if (globalPCList[i].dist > currentDist) {
+      detectedTrackIdx = i;
+      break;
     }
+  }
+  
+  autoTrackIdx = detectedTrackIdx;
+
+  // 距離の変更があった場合、または初回時は自動的にNEXT PCにフォーカスを合わせる
+  if (isDistanceOrInputChanged || currentDisplayIndex === -1 || currentDisplayIndex >= globalPCList.length) {
+    currentDisplayIndex = autoTrackIdx;
+  }
+
+  // PC表示部分を更新
+  if (globalPCList.length > 0 && currentDisplayIndex !== -1) {
+    updateDisplayOnly();
   } else {
     document.getElementById("pcLabel").innerText = "NEXT: GOAL";
     document.getElementById("pcRemainDist").innerText = "残り 0.0 km";
     ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
   }
 
+  // 下半分のリアルタイム集計計算
   if (!startTime.value || !distance.value) return;
 
   const [targetDistance, limitHours] = brm.value.split(",").map(Number);
@@ -520,13 +619,19 @@ function update() {
   savingElement.className = statusClass;
 }
 
-setInterval(update, 1000);
-distance.addEventListener("input", update);
-startTime.addEventListener("change", update);
-brm.addEventListener("change", update);
-pcInput.addEventListener("input", update);
-document.addEventListener("resume", update, false);
-update();
+// 1秒ごとの定期自動更新（手動選択位置を崩さない）
+setInterval(() => update(false), 1000);
+
+// 入力イベント（距離やリスト変更時は自動で最新のNEXT PCに合わせ直す）
+distance.addEventListener("input", () => update(true));
+pcInput.addEventListener("input", () => update(true));
+
+startTime.addEventListener("change", () => update(false));
+brm.addEventListener("change", () => update(false));
+document.addEventListener("resume", () => update(false), false);
+
+// 初回起動
+update(true);
 </script>
 </body>
 </html>
