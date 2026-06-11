@@ -104,7 +104,7 @@ textarea {
   padding: 10px 12px;
 }
 
-/* 【変更】PC情報より下、および現在距離・時間の枠をスリム（縦6px）にする専用スタイル */
+/* PC情報より下、および現在距離・時間の枠をスリムにする専用スタイル */
 .slim-card {
   background: #1a1a1a;
   border-radius: 10px;
@@ -141,7 +141,7 @@ input[type="datetime-local"] {
   flex: 1;
 }
 
-/* 【変更】現在距離と現在時間の高さを、他スリム枠（約60px）と同じになるよう高さを解除 */
+/* 現在距離と現在時間の並び */
 .time-dist-height {
   display: flex;
   flex-direction: column;
@@ -159,7 +159,7 @@ input[type="datetime-local"] {
   font-weight: bold;
   color: #00e5ff; 
   text-align: center;
-  padding: 4px 0; /* 縦幅に合わせてパディングを縮小 */
+  padding: 4px 0;
 }
 
 /* 速度別PC到着時間カード */
@@ -186,25 +186,28 @@ input[type="datetime-local"] {
   padding-bottom: 6px;
 }
 
-/* 速度別時間テーブル */
-.pc-speed-table {
-  width: 100%;
-  border-collapse: collapse;
+/* 【変更】速度テーブルを 3列×2段 のグリッドレイアウトへ刷新 */
+.pc-speed-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3列に等分割 */
+  gap: 8px 4px; /* 縦の隙間を少し広め、横を狭めに設定 */
+  text-align: center;
 }
-.pc-speed-table th {
+.pc-speed-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.pc-speed-th {
   font-size: 13px; 
   color: #00d2ff;
-  padding: 2px 4px;
   font-weight: normal;
-  text-align: center;
-  border-bottom: 1px solid rgba(0, 210, 255, 0.2);
+  margin-bottom: 2px;
 }
-.pc-speed-table td {
+.pc-speed-td {
   font-size: 16px; 
   font-weight: bold;
   color: #ffffff;
-  padding: 5px 4px 2px 4px;
-  text-align: center;
 }
 
 /* グリッドレイアウト */
@@ -225,14 +228,13 @@ input[type="datetime-local"] {
   text-align: center;
 }
 
-/* 【変更】貯金時間の外枠を少しスリム(10px)にする専用スタイル */
+/* 貯金時間カード */
 .slim-big-card {
   background: #1a1a1a;
   border-radius: 10px;
   padding: 10px 12px; 
   margin-top: 4px;
 }
-/* 【修正】文字サイズを前回の1ポイント縮小(41px)にし、確実に「中央寄せ」が維持されるよう指定 */
 .big-value {
   font-size: 41px; 
   font-weight: bold;
@@ -311,22 +313,15 @@ input[type="datetime-local"] {
     <div class="pc-main-row">
       <div class="value highlight" id="pcRemainDist" style="font-size:26px; text-align: center;">残り -- km</div>
     </div>
-    <table class="pc-speed-table">
-      <tr>
-        <th>15km/h</th>
-        <th>16km/h</th>
-        <th>17km/h</th>
-        <th>18km/h</th>
-        <th>19km/h</th>
-      </tr>
-      <tr>
-        <td id="sp15">--:--</td>
-        <td id="sp16">--:--</td>
-        <td id="sp17">--:--</td>
-        <td id="sp18">--:--</td>
-        <td id="sp19">--:--</td>
-      </tr>
-    </table>
+    
+    <div class="pc-speed-grid">
+      <div class="pc-speed-cell"><div class="pc-speed-th">15km/h</div><div class="pc-speed-td" id="sp15">--:--</div></div>
+      <div class="pc-speed-cell"><div class="pc-speed-th">16km/h</div><div class="pc-speed-td" id="sp16">--:--</div></div>
+      <div class="pc-speed-cell"><div class="pc-speed-th">17km/h</div><div class="pc-speed-td" id="sp17">--:--</div></div>
+      <div class="pc-speed-cell"><div class="pc-speed-th">18km/h</div><div class="pc-speed-td" id="sp18">--:--</div></div>
+      <div class="pc-speed-cell"><div class="pc-speed-th">19km/h</div><div class="pc-speed-td" id="sp19">--:--</div></div>
+      <div class="pc-speed-cell"><div class="pc-speed-th">20km/h</div><div class="pc-speed-td" id="sp20">--:--</div></div>
+    </div>
   </div>
 
   <div class="grid">
@@ -387,7 +382,8 @@ resetBtn.addEventListener("click", () => {
     document.getElementById("pcLabel").innerText = "NEXT: PC-";
     document.getElementById("pcRemainDist").innerText = "残り -- km";
     
-    ["15","16","17","18","19"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
+    // リセット対象に "20" を追加
+    ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
 
     menuContent.classList.remove("open");
     alert("データを初期化しました。");
@@ -454,19 +450,20 @@ function update() {
     document.getElementById("pcRemainDist").innerText = "残り " + diffDist.toFixed(1) + " km";
 
     if (startReady) {
-      const speeds = [15, 16, 17, 18, 19];
+      // 【変更】計算ループの配列に 20 を追加
+      const speeds = [15, 16, 17, 18, 19, 20];
       speeds.forEach(speed => {
         const totalHoursFromStart = nextPC.dist / speed;
         const arrivalDate = new Date(start.getTime() + totalHoursFromStart * 3600000);
         document.getElementById("sp" + speed).innerText = formatArrivalDate(arrivalDate, startTime.value);
       });
     } else {
-      ["15","16","17","18","19"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
+      ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
     }
   } else {
     document.getElementById("pcLabel").innerText = "NEXT: GOAL";
     document.getElementById("pcRemainDist").innerText = "残り 0.0 km";
-    ["15","16","17","18","19"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
+    ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
   }
 
   if (!startTime.value || !distance.value) return;
