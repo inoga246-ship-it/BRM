@@ -57,7 +57,7 @@ input, select, textarea {
   flex-shrink: 0;
 }
 
-/* メメニューエリア */
+/* メニューエリア */
 .menu-content {
   display: none;
   background: #222;
@@ -83,7 +83,37 @@ textarea {
   padding: 10px;
   font-size: 14px;
   border-radius: 4px;
-  height: 120px;
+  height: 110px;
+}
+
+/* 【追加】メニュー内専用のボタン・入力欄スタイル */
+.menu-input-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+.btn-save {
+  background: #00aa66;
+  color: white;
+  border: none;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-delete {
+  background: #444;
+  color: #ff4444;
+  border: 1px solid #ff4444;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
 }
 .btn-reset {
   width: 100%;
@@ -94,10 +124,10 @@ textarea {
   font-size: 16px;
   font-weight: bold;
   border-radius: 6px;
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
-/* 【変更】貯金時間、PC情報以外のすべての枠（カード）の大きさとデザインを完全統一 */
+/* 共通カードスタイル */
 .slim-card {
   background: #1a1a1a;
   border-radius: 10px;
@@ -106,16 +136,12 @@ textarea {
   flex-direction: column;
   justify-content: center;
 }
-
-/* 【変更】BRM設定とSTART日時のコンテナ用スタイル（センター配置用） */
 .card-center {
   background: #1a1a1a;
   border-radius: 10px;
   padding: 10px 12px;
   text-align: center;
 }
-
-/* 【変更】上段の各ラベルを中央揃えに変更 */
 .label-center {
   display: block;
   font-size: 13px;
@@ -129,7 +155,6 @@ textarea {
   margin-bottom: 2px;
 }
 
-/* 【変更】上段の入力欄テキストも中央揃えに変更 */
 input, select {
   width: 100%;
   padding: 10px;
@@ -139,7 +164,7 @@ input, select {
   background: #333;
   color: #fff;
   text-align: center;
-  text-align-last: center; /* selectの文字を中央に寄せるための指定 */
+  text-align-last: center; 
 }
 input[type="datetime-local"] {
   font-size: 13px;
@@ -156,7 +181,6 @@ input[type="datetime-local"] {
   flex: 1;
 }
 
-/* 現在時間表示のフォントサイズ調整 */
 .current-time-display {
   font-size: 24px;
   font-weight: bold;
@@ -169,7 +193,7 @@ input[type="datetime-local"] {
   text-align: center;
 }
 
-/* 速度別PC到着時間カード（これ専用の独立デザイン） */
+/* PC情報枠 */
 .full-width-pc-card {
   width: 100%;
   background: #0a192f;      
@@ -178,7 +202,6 @@ input[type="datetime-local"] {
   padding: 12px;
   margin-bottom: 8px;
 }
-
 .pc-header-row {
   display: flex;
   justify-content: space-between;
@@ -208,7 +231,6 @@ input[type="datetime-local"] {
   flex: 1;
   padding: 0 4px;
 }
-
 .pc-main-row {
   display: flex;
   justify-content: center; 
@@ -218,7 +240,7 @@ input[type="datetime-local"] {
   padding-bottom: 6px;
 }
 
-/* 速度別時間テーブル（グリッド） */
+/* 速度グリッド */
 .pc-speed-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr); 
@@ -242,7 +264,6 @@ input[type="datetime-local"] {
   color: #ffffff;
 }
 
-/* 【変更】現在距離・現在時間を含めたすべての情報枠（2列グリッド） */
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -250,14 +271,13 @@ input[type="datetime-local"] {
   margin-bottom: 8px;
 }
 
-/* 【変更】貯金時間カード：フォント縮小に伴いパディングを少し詰め、高さを最適化 */
+/* 貯金時間 */
 .slim-big-card {
   background: #1a1a1a;
   border-radius: 10px;
   padding: 6px 12px; 
   margin-top: 4px;
 }
-/* 【変更】文字サイズを 41px から 38px に 3ポイント縮小 */
 .big-value {
   font-size: 38px; 
   font-weight: bold;
@@ -292,15 +312,36 @@ input[type="datetime-local"] {
     <div class="menu-trigger" id="menuTrigger">☰</div>
   </div>
 
+  <!-- 【拡張】メニューエリア：リスト保存・呼び出し機能を追加 -->
   <div class="menu-content" id="menuContent">
-    <div style="margin-bottom: 10px;">
+    <div style="margin-bottom: 8px;">
       <label class="menu-label">PCリスト登録 (貼り付け用)</label>
       <textarea id="pcInput" placeholder="例:&#10;PC1, 御幸橋① フォト, 24.9km&#10;PC2、山城大橋 フォト，38.0km"></textarea>
     </div>
+
+    <!-- 【追加】名前をつけて保存機能 -->
+    <div style="margin-bottom: 10px;">
+      <label class="menu-label">現在のリストを保存する</label>
+      <div class="menu-input-row">
+        <input type="text" id="saveName" placeholder="例: BRM315泉佐野" style="font-size:14px; padding:6px; text-align:left;">
+        <button class="btn-save" id="saveBtn">保存</button>
+      </div>
+    </div>
+
+    <!-- 【追加】保存したリストの呼び出し・削除機能 -->
+    <div style="margin-bottom: 15px;">
+      <label class="menu-label">保存済みリストの呼び出し / 削除</label>
+      <div class="menu-input-row">
+        <select id="savedListsSelect" style="font-size:14px; padding:6px; text-align:left; text-align-last:left;">
+          <option value="">-- 保存データがありません --</option>
+        </select>
+        <button class="btn-delete" id="deleteBtn">削除</button>
+      </div>
+    </div>
+
     <button class="btn-reset" id="resetBtn">全データをリセット</button>
   </div>
 
-  <!-- 【変更】上段の「BRM設定」「START日時」枠を中央揃え（card-center）に変更 -->
   <div class="top-row">
     <div class="card-center half">
       <label class="label-center">BRM設定</label>
@@ -317,7 +358,6 @@ input[type="datetime-local"] {
     </div>
   </div>
 
-  <!-- 【変更】現在距離と現在時間の枠を、下の情報グリッドと同じ「slim-card」に完全統一 -->
   <div class="grid">
     <div class="slim-card">
       <div class="title" style="text-align: center;">現在距離</div>
@@ -382,6 +422,12 @@ const resetBtn = document.getElementById("resetBtn");
 const pcPrevBtn = document.getElementById("pcPrevBtn");
 const pcNextBtn = document.getElementById("pcNextBtn");
 
+// 【追加】保存機能用エレメント
+const saveName = document.getElementById("saveName");
+const saveBtn = document.getElementById("saveBtn");
+const savedListsSelect = document.getElementById("savedListsSelect");
+const deleteBtn = document.getElementById("deleteBtn");
+
 const defaultPCList = "PC1, 御幸橋① フォト, 24.9km\nPC2, 山城大橋 フォト, 38.0km";
 
 let globalPCList = [];
@@ -395,14 +441,107 @@ pcInput.value = localStorage.getItem("pcList") || defaultPCList;
 
 menuTrigger.addEventListener("click", () => menuContent.classList.toggle("open"));
 
+// 【追加】ローカルストレージから保存済みリスト群をロードしてセレクトボックスを更新する関数
+function loadSavedListsDropdown() {
+  const savedData = localStorage.getItem("customPCLists");
+  let lists = savedData ? JSON.parse(savedData) : {};
+  
+  // セレクトボックスをクリア
+  savedListsSelect.innerHTML = "";
+  
+  const keys = Object.keys(lists);
+  if (keys.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.innerText = "-- 保存データがありません --";
+    savedListsSelect.appendChild(opt);
+    return;
+  }
+  
+  // 初期選択用の空オプション
+  const defaultOpt = document.createElement("option");
+  defaultOpt.value = "";
+  defaultOpt.innerText = "-- リストを選択して呼び出し --";
+  savedListsSelect.appendChild(defaultOpt);
+  
+  // 保存されている名前を一覧に追加
+  keys.forEach(key => {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.innerText = key;
+    savedListsSelect.appendChild(opt);
+  });
+}
+
+// 【追加】保存ボタンを押したとき
+saveBtn.addEventListener("click", () => {
+  const name = saveName.value.trim();
+  const text = pcInput.value.trim();
+  
+  if (!name) {
+    alert("保存する名前を入力してください。");
+    return;
+  }
+  if (!text) {
+    alert("保存するPCリストの中身が空です。");
+    return;
+  }
+  
+  const savedData = localStorage.getItem("customPCLists");
+  let lists = savedData ? JSON.parse(savedData) : {};
+  
+  lists[name] = text;
+  localStorage.setItem("customPCLists", JSON.stringify(lists));
+  
+  saveName.value = ""; // 入力欄をクリア
+  loadSavedListsDropdown(); // 一覧を更新
+  alert("リスト「" + name + "」を保存しました。");
+});
+
+// 【追加】セレクトボックスでリストを選択（呼び出し）したとき
+savedListsSelect.addEventListener("change", () => {
+  const selectedName = savedListsSelect.value;
+  if (!selectedName) return;
+  
+  const savedData = localStorage.getItem("customPCLists");
+  let lists = savedData ? JSON.parse(savedData) : {};
+  
+  if (lists[selectedName]) {
+    pcInput.value = lists[selectedName];
+    update(true); // メーター表示を即座に強制更新
+    alert("「" + selectedName + "」のリストを読み込みました。");
+  }
+});
+
+// 【追加】削除ボタンを押したとき
+deleteBtn.addEventListener("click", () => {
+  const selectedName = savedListsSelect.value;
+  if (!selectedName) {
+    alert("削除したいリストを選択してください。");
+    return;
+  }
+  
+  if (confirm("リスト「" + selectedName + "」を削除してもよろしいですか？")) {
+    const savedData = localStorage.getItem("customPCLists");
+    let lists = savedData ? JSON.parse(savedData) : {};
+    
+    delete lists[selectedName];
+    localStorage.setItem("customPCLists", JSON.stringify(lists));
+    
+    loadSavedListsDropdown(); // 一覧を更新
+    alert("削除しました。");
+  }
+});
+
 resetBtn.addEventListener("click", () => {
-  if (confirm("全データをリセットしますか？")) {
+  if (confirm("入力中の距離や設定を含め、すべてのデータをリセットしますか？（保存したリスト一覧も消去されます）")) {
     localStorage.clear();
 
     startTime.value = "";
     distance.value = "";
     brm.value = "200,13.5";
     pcInput.value = "";
+    saveName.value = "";
 
     document.getElementById("elapsed").innerText = "--";
     document.getElementById("remainTime").innerText = "--";
@@ -417,24 +556,9 @@ resetBtn.addEventListener("click", () => {
     
     ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
 
+    loadSavedListsDropdown();
     menuContent.classList.remove("open");
-    alert("データを初期化しました。");
-  }
-});
-
-pcPrevBtn.addEventListener("click", () => {
-  if (globalPCList.length === 0) return;
-  if (currentDisplayIndex > 0) {
-    currentDisplayIndex--;
-    updateDisplayOnly();
-  }
-});
-
-pcNextBtn.addEventListener("click", () => {
-  if (globalPCList.length === 0) return;
-  if (currentDisplayIndex < globalPCList.length - 1) {
-    currentDisplayIndex++;
-    updateDisplayOnly();
+    alert("データをすべて初期化しました。");
   }
 });
 
@@ -613,6 +737,8 @@ startTime.addEventListener("change", () => update(false));
 brm.addEventListener("change", () => update(false));
 document.addEventListener("resume", () => update(false), false);
 
+// 【初回起動処理】
+loadSavedListsDropdown();
 update(true);
 </script>
 </body>
