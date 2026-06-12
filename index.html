@@ -171,11 +171,11 @@ input[type="datetime-local"] {
   padding: 11px 4px;
 }
 
-/* 行レイアウト */
-.top-row {
+/* メニュー内引っ越し用の行レイアウト */
+.menu-top-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .half {
   flex: 1;
@@ -191,6 +191,71 @@ input[type="datetime-local"] {
   font-size: 24px;
   font-weight: bold;
   text-align: center;
+}
+
+/* 動く進捗グラフエリア */
+.progress-section {
+  background: #111;
+  border-radius: 10px;
+  padding: 10px 14px 4px 14px; 
+  margin-bottom: 8px;
+  border: 1px solid #222;
+}
+.graph-container {
+  background-color: #222;
+  border-radius: 4px;
+  height: 14px;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+.graph-bar {
+  height: 100%;
+  width: 0%; 
+  background: linear-gradient(90deg, #00aa66 0%, #00ff66 100%);
+  border-radius: 4px;
+  transition: width 0.4s ease-out;
+}
+.graph-scale-container {
+  position: relative;
+  width: 100%;
+  height: 34px;
+}
+.scale-point {
+  font-size: 10px;
+  color: #ffffff; 
+  position: absolute;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+}
+/* 奇数用（上段）の配置スタイル */
+.scale-point.odd {
+  top: 5px;
+}
+.scale-point.odd::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 4px;
+  background-color: #555;
+}
+/* 偶数用（下段）の配置スタイル */
+.scale-point.even {
+  top: 18px;
+}
+.scale-point.even::before {
+  content: "";
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 17px; 
+  background-color: #333;
 }
 
 /* PC情報枠 */
@@ -313,6 +378,22 @@ input[type="datetime-local"] {
   </div>
 
   <div class="menu-content" id="menuContent">
+    <div class="menu-top-row">
+      <div class="card-center half" style="background: #333;">
+        <label class="label-center" style="color: #fff;">BRM設定</label>
+        <select id="brm" style="background: #222;">
+          <option value="200,13.5">200km (13.5h)</option>
+          <option value="300,20">300km (20h)</option>
+          <option value="400,27">400km (27h)</option>
+          <option value="600,40">600km (40h)</option>
+        </select>
+      </div>
+      <div class="card-center half" style="background: #333;">
+        <label class="label-center" style="color: #fff;">START日時</label>
+        <input type="datetime-local" id="startTime" style="background: #222;">
+      </div>
+    </div>
+
     <div style="margin-bottom: 8px;">
       <label class="menu-label">PCリスト登録 (貼り付け用)</label>
       <textarea id="pcInput" placeholder="例:&#10;PC1, 御幸橋① フォト, 24.9km&#10;PC2、山城大橋 フォト，38.0km"></textarea>
@@ -339,22 +420,6 @@ input[type="datetime-local"] {
     <button class="btn-reset" id="resetBtn">リセット</button>
   </div>
 
-  <div class="top-row">
-    <div class="card-center half">
-      <label class="label-center">BRM設定</label>
-      <select id="brm">
-        <option value="200,13.5">200km (13.5h)</option>
-        <option value="300,20">300km (20h)</option>
-        <option value="400,27">400km (27h)</option>
-        <option value="600,40">600km (40h)</option>
-      </select>
-    </div>
-    <div class="card-center half">
-      <label class="label-center">START日時</label>
-      <input type="datetime-local" id="startTime">
-    </div>
-  </div>
-
   <div class="grid">
     <div class="slim-card">
       <div class="title" style="text-align: center;">現在距離</div>
@@ -366,6 +431,14 @@ input[type="datetime-local"] {
     </div>
   </div>
 
+  <div class="progress-section">
+    <div class="graph-container">
+      <div id="graphBar" class="graph-bar"></div>
+    </div>
+    <div class="graph-scale-container" id="graphScale">
+      </div>
+  </div>
+
   <div class="card full-width-pc-card" id="pcCard">
     <div class="pc-header-row">
       <button class="pc-nav-btn" id="pcPrevBtn">◀ 前</button>
@@ -374,7 +447,7 @@ input[type="datetime-local"] {
     </div>
     
     <div class="pc-main-row">
-      <div class="value highlight" id="pcRemainDist" style="font-size:26px; text-align: center;">残り -- km</div>
+      <div class="value highlight" id="pcRemainDist" style="font-size:26px; text-align: center; cursor: pointer; padding: 0 20px;">残り -- km</div>
     </div>
     
     <div class="pc-speed-grid">
@@ -417,7 +490,9 @@ const menuContent = document.getElementById("menuContent");
 const resetBtn = document.getElementById("resetBtn");
 const pcPrevBtn = document.getElementById("pcPrevBtn");
 const pcNextBtn = document.getElementById("pcNextBtn");
-const pcCard = document.getElementById("pcCard");
+const pcRemainDist = document.getElementById("pcRemainDist");
+const graphBar = document.getElementById("graphBar");
+const graphScale = document.getElementById("graphScale");
 
 // 保存機能用エレメント
 const saveName = document.getElementById("saveName");
@@ -431,7 +506,7 @@ let globalPCList = [];
 let currentDisplayIndex = -1; 
 let autoTrackIdx = -1;        
 let isUserNavigating = false; 
-let tempDistanceValue = ""; // 【追加】タップ時に数値を一時避難させる変数
+let tempDistanceValue = ""; 
 
 startTime.value = localStorage.getItem("startTime") || "";
 brm.value = localStorage.getItem("brm") || "200,13.5";
@@ -440,13 +515,13 @@ pcInput.value = localStorage.getItem("pcList") || defaultPCList;
 
 menuTrigger.addEventListener("click", () => menuContent.classList.toggle("open"));
 
-// 【追加】現在距離タップ時の自動消去＆バックアップ処理
+// 現在距離タップ時の自動消去＆バックアップ処理
 distance.addEventListener("focus", () => {
-  tempDistanceValue = distance.value; // 現在の値をバックアップ
-  distance.value = ""; // 入力欄をクリア
+  tempDistanceValue = distance.value; 
+  distance.value = ""; 
 });
 
-// 【追加】何も入力せずにタップを外した場合は値を元に戻す処理
+// 何も入力せずにタップを外した場合は値を元に戻す処理
 distance.addEventListener("blur", () => {
   if (distance.value === "") {
     distance.value = tempDistanceValue;
@@ -454,11 +529,11 @@ distance.addEventListener("blur", () => {
   }
 });
 
-// 【追加】PC情報をダブルクリック（ダブルタップ）した時にNEXT（自動追従）に戻る
-pcCard.addEventListener("dblclick", () => {
+// ダブルクリック（ダブルタップ）イベントを「黄色の残り距離（pcRemainDist）」だけに限定付与
+pcRemainDist.addEventListener("dblclick", () => {
   if (isUserNavigating) {
-    isUserNavigating = false; // 手動モードを解除
-    currentDisplayIndex = autoTrackIdx; // 現在距離のNEXTに合わせる
+    isUserNavigating = false; 
+    currentDisplayIndex = autoTrackIdx; 
     updateDisplayOnly();
   }
 });
@@ -555,7 +630,6 @@ deleteBtn.addEventListener("click", () => {
 
 // 前ボタン
 pcPrevBtn.addEventListener("click", (e) => {
-  e.stopPropagation(); // ダブルクリックイベントとの競合を防ぐ
   if (globalPCList.length === 0) return;
   if (currentDisplayIndex > 0) {
     isUserNavigating = true; 
@@ -566,7 +640,6 @@ pcPrevBtn.addEventListener("click", (e) => {
 
 // 次ボタン
 pcNextBtn.addEventListener("click", (e) => {
-  e.stopPropagation(); // ダブルクリックイベントとの競合を防ぐ
   if (globalPCList.length === 0) return;
   if (currentDisplayIndex < globalPCList.length - 1) {
     isUserNavigating = true; 
@@ -610,9 +683,9 @@ function updateDisplayOnly() {
   document.getElementById("pcLabel").innerText = prefix + selectedPC.id + " " + selectedPC.name + "（" + selectedPC.dist.toFixed(1) + "km）";
 
   if (diffDist >= 0) {
-    document.getElementById("pcRemainDist").innerText = "残り " + diffDist.toFixed(1) + " km";
+    pcRemainDist.innerText = "残り " + diffDist.toFixed(1) + " km";
   } else {
-    document.getElementById("pcRemainDist").innerText = "通過後 " + Math.abs(diffDist).toFixed(1) + " km";
+    pcRemainDist.innerText = "通過後 " + Math.abs(diffDist).toFixed(1) + " km";
   }
 
   let startReady = false;
@@ -632,6 +705,35 @@ function updateDisplayOnly() {
   } else {
     ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
   }
+}
+
+// 千鳥配置（上下交互）に対応したグラフ目盛りレンダリング関数
+function renderGraphScale(targetDistance) {
+  graphScale.innerHTML = ""; 
+  
+  // スタート地点 (0km) -> 奇数番目扱い（上段）
+  createScalePoint(0, "START", true);
+
+  // 各PC地点をループ
+  globalPCList.forEach((pc, index) => {
+    if (pc.dist < targetDistance) {
+      const pct = (pc.dist / targetDistance) * 100;
+      const isOdd = (index % 2 === 0);
+      createScalePoint(pct, pc.id, isOdd);
+    }
+  });
+
+  // ゴール地点 (MAX km) -> 常に下段（偶数扱い）にしてSTARTとの被りを回避
+  createScalePoint(100, "GOAL", false);
+}
+
+// 千鳥配置用のクラス(odd / even)を付与する仕組み
+function createScalePoint(leftPct, label, isOdd) {
+  const div = document.createElement("div");
+  div.className = "scale-point " + (isOdd ? "odd" : "even");
+  div.style.left = leftPct + "%";
+  div.innerText = label;
+  graphScale.appendChild(div);
 }
 
 function update(isDistanceOrInputChanged = false) {
@@ -654,6 +756,7 @@ function update(isDistanceOrInputChanged = false) {
   }
 
   const currentDist = parseFloat(distance.value) || 0;
+  const [targetDistance, limitHours] = brm.value.split(",").map(Number);
 
   const pcLines = pcInput.value.split("\n").filter(line => line.trim() !== "");
   globalPCList = [];
@@ -666,6 +769,15 @@ function update(isDistanceOrInputChanged = false) {
       globalPCList.push({ id: columns[0], name: columns[1], dist: pcDist });
     }
   }
+
+  // プログレスバーの進捗率を計算して反映
+  let progressPct = (currentDist / targetDistance) * 100;
+  if (progressPct < 0) progressPct = 0;
+  if (progressPct > 100) progressPct = 100;
+  graphBar.style.width = progressPct + "%";
+
+  // 目盛りの再描画（千鳥配置）
+  renderGraphScale(targetDistance);
 
   let detectedTrackIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
   for (let i = 0; i < globalPCList.length; i++) {
@@ -688,13 +800,12 @@ function update(isDistanceOrInputChanged = false) {
     updateDisplayOnly();
   } else {
     document.getElementById("pcLabel").innerText = "NEXT: GOAL";
-    document.getElementById("pcRemainDist").innerText = "残り 0.0 km";
+    pcRemainDist.innerText = "残り 0.0 km";
     ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
   }
 
   if (!startTime.value || !distance.value) return;
 
-  const [targetDistance, limitHours] = brm.value.split(",").map(Number);
   let elapsed = (now - start) / 1000 / 3600;
   if (elapsed <= 0) return;
 
@@ -759,6 +870,7 @@ resetBtn.addEventListener("click", () => {
     pcInput.value = "";
     saveName.value = "";
     tempDistanceValue = "";
+    graphBar.style.width = "0%";
 
     document.getElementById("elapsed").innerText = "--";
     document.getElementById("remainTime").innerText = "--";
@@ -769,7 +881,7 @@ resetBtn.addEventListener("click", () => {
     document.getElementById("saving").innerText = "--";
     document.getElementById("saving").className = "big-value"; 
     document.getElementById("pcLabel").innerText = "NEXT: PC-";
-    document.getElementById("pcRemainDist").innerText = "残り -- km";
+    pcRemainDist.innerText = "残り -- km";
     
     ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
 
