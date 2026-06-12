@@ -312,14 +312,12 @@ input[type="datetime-local"] {
     <div class="menu-trigger" id="menuTrigger">☰</div>
   </div>
 
-  <!-- メニューエリア -->
   <div class="menu-content" id="menuContent">
     <div style="margin-bottom: 8px;">
       <label class="menu-label">PCリスト登録 (貼り付け用)</label>
       <textarea id="pcInput" placeholder="例:&#10;PC1, 御幸橋① フォト, 24.9km&#10;PC2、山城大橋 フォト，38.0km"></textarea>
     </div>
 
-    <!-- 名前をつけて保存機能 -->
     <div style="margin-bottom: 10px;">
       <label class="menu-label">現在のリストを保存する</label>
       <div class="menu-input-row">
@@ -328,7 +326,6 @@ input[type="datetime-local"] {
       </div>
     </div>
 
-    <!-- 保存したリストの呼び出し・削除機能 -->
     <div style="margin-bottom: 15px;">
       <label class="menu-label">保存済みリストの呼び出し / 削除</label>
       <div class="menu-input-row">
@@ -339,7 +336,6 @@ input[type="datetime-local"] {
       </div>
     </div>
 
-    <!-- 【変更】ボタン名を「リセット」に変更 -->
     <button class="btn-reset" id="resetBtn">リセット</button>
   </div>
 
@@ -370,7 +366,6 @@ input[type="datetime-local"] {
     </div>
   </div>
 
-  <!-- PCカード情報 -->
   <div class="card full-width-pc-card">
     <div class="pc-header-row">
       <button class="pc-nav-btn" id="pcPrevBtn">◀ 前</button>
@@ -434,6 +429,7 @@ const defaultPCList = "PC1, 御幸橋① フォト, 24.9km\nPC2, 山城大橋 �
 let globalPCList = [];
 let currentDisplayIndex = -1; 
 let autoTrackIdx = -1;        
+let isUserNavigating = false; // 【修正】手動ナビゲーション中フラグを追加
 
 startTime.value = localStorage.getItem("startTime") || "";
 brm.value = localStorage.getItem("brm") || "200,13.5";
@@ -447,7 +443,6 @@ function loadSavedListsDropdown() {
   const savedData = localStorage.getItem("customPCLists");
   let lists = savedData ? JSON.parse(savedData) : {};
   
-  // セレクトボックスをクリア
   savedListsSelect.innerHTML = "";
   
   const keys = Object.keys(lists);
@@ -459,13 +454,11 @@ function loadSavedListsDropdown() {
     return;
   }
   
-  // 初期選択用の空オプション
   const defaultOpt = document.createElement("option");
   defaultOpt.value = "";
   defaultOpt.innerText = "-- リストを選択して呼び出し --";
   savedListsSelect.appendChild(defaultOpt);
   
-  // 保存されている名前を一覧に追加
   keys.forEach(key => {
     const opt = document.createElement("option");
     opt.value = key;
@@ -474,7 +467,7 @@ function loadSavedListsDropdown() {
   });
 }
 
-// 名前をつけて保存ボタンを押したとき
+// 保存ボタンを押したとき
 saveBtn.addEventListener("click", () => {
   const name = saveName.value.trim();
   const text = pcInput.value.trim();
@@ -509,6 +502,7 @@ savedListsSelect.addEventListener("change", () => {
   
   if (lists[selectedName]) {
     pcInput.value = lists[selectedName];
+    isUserNavigating = false; // 読み込み時は自動追従にリセット
     update(true); 
     alert("「" + selectedName + "」のリストを読み込みました。");
   }
@@ -534,41 +528,23 @@ deleteBtn.addEventListener("click", () => {
   }
 });
 
-// 【変更】リセットボタン処理（指定された3項目のみクリア、保存データは維持）
-resetBtn.addEventListener("click", () => {
-  if (confirm("「START日時」「現在距離」「PCリスト登録」の内容をリセットしますか？（※保存したリスト一覧は削除されません）")) {
-    
-    // 指定された個別キーのみローカルストレージから削除
-    localStorage.removeItem("startTime");
-    localStorage.removeItem("distance");
-    localStorage.removeItem("pcList");
+// 前ボタン
+pcPrevBtn.addEventListener("click", () => {
+  if (globalPCList.length === 0) return;
+  if (currentDisplayIndex > 0) {
+    isUserNavigating = true; // 手動切替モードON
+    currentDisplayIndex--;
+    updateDisplayOnly();
+  }
+});
 
-    // 各入力欄のクリア
-    startTime.value = "";
-    distance.value = "";
-    pcInput.value = "";
-    saveName.value = "";
-
-    // メーター等、画面の初期化
-    document.getElementById("elapsed").innerText = "--";
-    document.getElementById("remainTime").innerText = "--";
-    document.getElementById("gross").innerText = "--";
-    document.getElementById("remainDistance").innerText = "--";
-    document.getElementById("finish").innerText = "--";
-    document.getElementById("needSpeed").innerText = "--";
-    document.getElementById("saving").innerText = "--";
-    document.getElementById("saving").className = "big-value"; 
-    document.getElementById("pcLabel").innerText = "NEXT: PC-";
-    document.getElementById("pcRemainDist").innerText = "残り -- km";
-    
-    ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
-
-    // ドロップダウンを再選択（選択状態を戻す）
-    savedListsSelect.value = "";
-
-    menuContent.classList.remove("open");
-    update(true);
-    alert("指定された項目をリセットしました。");
+// 次ボタン
+pcNextBtn.addEventListener("click", () => {
+  if (globalPCList.length === 0) return;
+  if (currentDisplayIndex < globalPCList.length - 1) {
+    isUserNavigating = true; // 手動切替モードON
+    currentDisplayIndex++;
+    updateDisplayOnly();
   }
 });
 
@@ -674,7 +650,11 @@ function update(isDistanceOrInputChanged = false) {
   
   autoTrackIdx = detectedTrackIdx;
 
-  if (isDistanceOrInputChanged || currentDisplayIndex === -1 || currentDisplayIndex >= globalPCList.length) {
+  // 【修正】手動操作時以外（距離が変わった、または初期化時）のみ自動追従する
+  if (isDistanceOrInputChanged || !isUserNavigating || currentDisplayIndex === -1 || currentDisplayIndex >= globalPCList.length) {
+    if (isDistanceOrInputChanged) {
+      isUserNavigating = false; // 距離変更やリスト変更があった場合は自動追従に戻す
+    }
     currentDisplayIndex = autoTrackIdx;
   }
 
@@ -739,6 +719,41 @@ function update(isDistanceOrInputChanged = false) {
   savingElement.innerText = statusIcon + " " + savSign + savH + "時間" + savM + "分";
   savingElement.className = statusClass;
 }
+
+// リセットボタン
+resetBtn.addEventListener("click", () => {
+  if (confirm("「START日時」「現在距離」「PCリスト登録」の内容をリセットしますか？（※保存したリスト一覧は削除されません）")) {
+    
+    localStorage.removeItem("startTime");
+    localStorage.removeItem("distance");
+    localStorage.removeItem("pcList");
+
+    startTime.value = "";
+    distance.value = "";
+    pcInput.value = "";
+    saveName.value = "";
+
+    document.getElementById("elapsed").innerText = "--";
+    document.getElementById("remainTime").innerText = "--";
+    document.getElementById("gross").innerText = "--";
+    document.getElementById("remainDistance").innerText = "--";
+    document.getElementById("finish").innerText = "--";
+    document.getElementById("needSpeed").innerText = "--";
+    document.getElementById("saving").innerText = "--";
+    document.getElementById("saving").className = "big-value"; 
+    document.getElementById("pcLabel").innerText = "NEXT: PC-";
+    document.getElementById("pcRemainDist").innerText = "残り -- km";
+    
+    ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
+
+    savedListsSelect.value = "";
+
+    isUserNavigating = false; // ナビゲーションもリセット
+    menuContent.classList.remove("open");
+    update(true);
+    alert("指定された項目をリセットしました。");
+  }
+});
 
 setInterval(() => update(false), 1000);
 distance.addEventListener("input", () => update(true));
