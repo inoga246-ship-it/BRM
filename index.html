@@ -135,6 +135,7 @@ textarea {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
 }
 .card-center {
   background: #1a1a1a;
@@ -153,6 +154,7 @@ textarea {
   font-size: 13px;
   color: #aaa;
   margin-bottom: 2px;
+  text-align: center;
 }
 
 input, select {
@@ -171,7 +173,7 @@ input[type="datetime-local"] {
   padding: 11px 4px;
 }
 
-/* メニュー内引っ越し用の行レイアウト */
+/* メニュー内用の行レイアウト */
 .menu-top-row {
   display: flex;
   gap: 8px;
@@ -229,6 +231,7 @@ input[type="datetime-local"] {
   text-align: center;
   white-space: nowrap;
 }
+
 /* 奇数用（上段）の配置スタイル */
 .scale-point.odd {
   top: 5px;
@@ -241,8 +244,9 @@ input[type="datetime-local"] {
   transform: translateX(-50%);
   width: 1px;
   height: 4px;
-  background-color: #555;
+  background-color: #ffffff; /* 縦線を白色に変更 */
 }
+
 /* 偶数用（下段）の配置スタイル */
 .scale-point.even {
   top: 18px;
@@ -255,7 +259,7 @@ input[type="datetime-local"] {
   transform: translateX(-50%);
   width: 1px;
   height: 17px; 
-  background-color: #333;
+  background-color: #ffffff; /* 縦線を白色に変更 */
 }
 
 /* PC情報枠 */
@@ -286,6 +290,15 @@ input[type="datetime-local"] {
 .pc-nav-btn:active {
   background: #00d2ff;
   color: #000;
+}
+.pc-title-label {
+  color: #00d2ff;            
+  font-size: 15px;           
+  font-weight: bold;
+  line-height: 1.3;
+  text-align: center;
+  flex: 1;
+  padding: 0 4px;
 }
 .pc-title-label {
   color: #00d2ff;            
@@ -422,11 +435,11 @@ input[type="datetime-local"] {
 
   <div class="grid">
     <div class="slim-card">
-      <div class="title" style="text-align: center;">現在距離</div>
+      <div class="title">現在距離</div>
       <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:24px; color:#00ff66; padding: 2px; text-align: center; background: transparent;">
     </div>
     <div class="slim-card">
-      <div class="title" style="text-align: center;">現在時間</div>
+      <div class="title">現在時間</div>
       <div id="currentTime" class="current-time-display">--:--:--</div>
     </div>
   </div>
@@ -470,7 +483,7 @@ input[type="datetime-local"] {
   </div>
 
   <div class="slim-big-card">
-    <div class="title" style="text-align: center; font-size: 15px;">貯金時間</div>
+    <div class="title" style="font-size: 15px;">貯金時間</div>
     <div class="big-value" id="saving">--</div>
   </div>
 
@@ -494,7 +507,6 @@ const pcRemainDist = document.getElementById("pcRemainDist");
 const graphBar = document.getElementById("graphBar");
 const graphScale = document.getElementById("graphScale");
 
-// 保存機能用エレメント
 const saveName = document.getElementById("saveName");
 const saveBtn = document.getElementById("saveBtn");
 const savedListsSelect = document.getElementById("savedListsSelect");
@@ -515,13 +527,11 @@ pcInput.value = localStorage.getItem("pcList") || defaultPCList;
 
 menuTrigger.addEventListener("click", () => menuContent.classList.toggle("open"));
 
-// 現在距離タップ時の自動消去＆バックアップ処理
 distance.addEventListener("focus", () => {
   tempDistanceValue = distance.value; 
   distance.value = ""; 
 });
 
-// 何も入力せずにタップを外した場合は値を元に戻す処理
 distance.addEventListener("blur", () => {
   if (distance.value === "") {
     distance.value = tempDistanceValue;
@@ -529,7 +539,6 @@ distance.addEventListener("blur", () => {
   }
 });
 
-// ダブルクリック（ダブルタップ）イベントを「黄色の残り距離（pcRemainDist）」だけに限定付与
 pcRemainDist.addEventListener("dblclick", () => {
   if (isUserNavigating) {
     isUserNavigating = false; 
@@ -538,7 +547,6 @@ pcRemainDist.addEventListener("dblclick", () => {
   }
 });
 
-// ローカルストレージから保存済みリスト群をロードしてセレクトボックスを更新する関数
 function loadSavedListsDropdown() {
   const savedData = localStorage.getItem("customPCLists");
   let lists = savedData ? JSON.parse(savedData) : {};
@@ -567,7 +575,6 @@ function loadSavedListsDropdown() {
   });
 }
 
-// 保存ボタン
 saveBtn.addEventListener("click", () => {
   const name = saveName.value.trim();
   const text = pcInput.value.trim();
@@ -592,7 +599,6 @@ saveBtn.addEventListener("click", () => {
   alert("リスト「" + name + "」を保存しました。");
 });
 
-// リスト呼び出し
 savedListsSelect.addEventListener("change", () => {
   const selectedName = savedListsSelect.value;
   if (!selectedName) return;
@@ -604,11 +610,10 @@ savedListsSelect.addEventListener("change", () => {
     pcInput.value = lists[selectedName];
     isUserNavigating = false; 
     update(true); 
-    alert("「" + selectedName + "」のリストを読み込みました。");
+    alert("「" + selectedName + "」のリストを読み込み込みました。");
   }
 });
 
-// 削除ボタン
 deleteBtn.addEventListener("click", () => {
   const selectedName = savedListsSelect.value;
   if (!selectedName) {
@@ -628,7 +633,6 @@ deleteBtn.addEventListener("click", () => {
   }
 });
 
-// 前ボタン
 pcPrevBtn.addEventListener("click", (e) => {
   if (globalPCList.length === 0) return;
   if (currentDisplayIndex > 0) {
@@ -638,7 +642,6 @@ pcPrevBtn.addEventListener("click", (e) => {
   }
 });
 
-// 次ボタン
 pcNextBtn.addEventListener("click", (e) => {
   if (globalPCList.length === 0) return;
   if (currentDisplayIndex < globalPCList.length - 1) {
@@ -707,27 +710,44 @@ function updateDisplayOnly() {
   }
 }
 
-// 千鳥配置（上下交互）に対応したグラフ目盛りレンダリング関数
+// 千鳥配置に対応したグラフ目盛りレンダリング関数
 function renderGraphScale(targetDistance) {
   graphScale.innerHTML = ""; 
   
-  // スタート地点 (0km) -> 奇数番目扱い（上段）
+  // スタート地点 (0km)
   createScalePoint(0, "START", true);
+
+  // PC以外のチェックポイントに割り当てる丸数字用のカウンター
+  const circleNumbers = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳"];
+  let nonPcCount = 0;
 
   // 各PC地点をループ
   globalPCList.forEach((pc, index) => {
     if (pc.dist < targetDistance) {
       const pct = (pc.dist / targetDistance) * 100;
       const isOdd = (index % 2 === 0);
-      createScalePoint(pct, pc.id, isOdd);
+      
+      // 名前に「PC」が含まれているかどうか判定
+      const hasPC = /PC/i.test(pc.id) || /PC/i.test(pc.name);
+      
+      let displayLabel = "";
+      if (hasPC) {
+        // PCの場合はID（PC1等）をそのまま表示
+        displayLabel = pc.id;
+      } else {
+        // PC以外の通過チェックやフォトの場合は、丸数字（①、②…）を割り当てる
+        displayLabel = circleNumbers[nonPcCount] || `(${nonPcCount + 1})`;
+        nonPcCount++;
+      }
+      
+      createScalePoint(pct, displayLabel, isOdd);
     }
   });
 
-  // ゴール地点 (MAX km) -> 常に下段（偶数扱い）にしてSTARTとの被りを回避
+  // ゴール地点 (MAX km)
   createScalePoint(100, "GOAL", false);
 }
 
-// 千鳥配置用のクラス(odd / even)を付与する仕組み
 function createScalePoint(leftPct, label, isOdd) {
   const div = document.createElement("div");
   div.className = "scale-point " + (isOdd ? "odd" : "even");
@@ -770,13 +790,11 @@ function update(isDistanceOrInputChanged = false) {
     }
   }
 
-  // プログレスバーの進捗率を計算して反映
   let progressPct = (currentDist / targetDistance) * 100;
   if (progressPct < 0) progressPct = 0;
   if (progressPct > 100) progressPct = 100;
   graphBar.style.width = progressPct + "%";
 
-  // 目盛りの再描画（千鳥配置）
   renderGraphScale(targetDistance);
 
   let detectedTrackIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
@@ -857,7 +875,6 @@ function update(isDistanceOrInputChanged = false) {
   savingElement.className = statusClass;
 }
 
-// リセットボタン
 resetBtn.addEventListener("click", () => {
   if (confirm("「START日時」「現在距離」「PCリスト登録」の内容をリセットしますか？（※保存したリスト一覧は削除されません）")) {
     
@@ -901,7 +918,6 @@ startTime.addEventListener("change", () => update(false));
 brm.addEventListener("change", () => update(false));
 document.addEventListener("resume", () => update(false), false);
 
-// 初回起動処理
 loadSavedListsDropdown();
 update(true);
 </script>
