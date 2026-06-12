@@ -366,7 +366,7 @@ input[type="datetime-local"] {
     </div>
   </div>
 
-  <div class="card full-width-pc-card">
+  <div class="card full-width-pc-card" id="pcCard">
     <div class="pc-header-row">
       <button class="pc-nav-btn" id="pcPrevBtn">◀ 前</button>
       <div id="pcLabel" class="pc-title-label">NEXT: PC-</div>
@@ -417,6 +417,7 @@ const menuContent = document.getElementById("menuContent");
 const resetBtn = document.getElementById("resetBtn");
 const pcPrevBtn = document.getElementById("pcPrevBtn");
 const pcNextBtn = document.getElementById("pcNextBtn");
+const pcCard = document.getElementById("pcCard");
 
 // 保存機能用エレメント
 const saveName = document.getElementById("saveName");
@@ -429,7 +430,8 @@ const defaultPCList = "PC1, 御幸橋① フォト, 24.9km\nPC2, 山城大橋 �
 let globalPCList = [];
 let currentDisplayIndex = -1; 
 let autoTrackIdx = -1;        
-let isUserNavigating = false; // 【修正】手動ナビゲーション中フラグを追加
+let isUserNavigating = false; 
+let tempDistanceValue = ""; // 【追加】タップ時に数値を一時避難させる変数
 
 startTime.value = localStorage.getItem("startTime") || "";
 brm.value = localStorage.getItem("brm") || "200,13.5";
@@ -437,6 +439,29 @@ distance.value = localStorage.getItem("distance") || "";
 pcInput.value = localStorage.getItem("pcList") || defaultPCList;
 
 menuTrigger.addEventListener("click", () => menuContent.classList.toggle("open"));
+
+// 【追加】現在距離タップ時の自動消去＆バックアップ処理
+distance.addEventListener("focus", () => {
+  tempDistanceValue = distance.value; // 現在の値をバックアップ
+  distance.value = ""; // 入力欄をクリア
+});
+
+// 【追加】何も入力せずにタップを外した場合は値を元に戻す処理
+distance.addEventListener("blur", () => {
+  if (distance.value === "") {
+    distance.value = tempDistanceValue;
+    update(false);
+  }
+});
+
+// 【追加】PC情報をダブルクリック（ダブルタップ）した時にNEXT（自動追従）に戻る
+pcCard.addEventListener("dblclick", () => {
+  if (isUserNavigating) {
+    isUserNavigating = false; // 手動モードを解除
+    currentDisplayIndex = autoTrackIdx; // 現在距離のNEXTに合わせる
+    updateDisplayOnly();
+  }
+});
 
 // ローカルストレージから保存済みリスト群をロードしてセレクトボックスを更新する関数
 function loadSavedListsDropdown() {
@@ -467,7 +492,7 @@ function loadSavedListsDropdown() {
   });
 }
 
-// 保存ボタンを押したとき
+// 保存ボタン
 saveBtn.addEventListener("click", () => {
   const name = saveName.value.trim();
   const text = pcInput.value.trim();
@@ -492,7 +517,7 @@ saveBtn.addEventListener("click", () => {
   alert("リスト「" + name + "」を保存しました。");
 });
 
-// セレクトボックスでリストを選択（呼び出し）したとき
+// リスト呼び出し
 savedListsSelect.addEventListener("change", () => {
   const selectedName = savedListsSelect.value;
   if (!selectedName) return;
@@ -502,13 +527,13 @@ savedListsSelect.addEventListener("change", () => {
   
   if (lists[selectedName]) {
     pcInput.value = lists[selectedName];
-    isUserNavigating = false; // 読み込み時は自動追従にリセット
+    isUserNavigating = false; 
     update(true); 
     alert("「" + selectedName + "」のリストを読み込みました。");
   }
 });
 
-// 削除ボタンを押したとき
+// 削除ボタン
 deleteBtn.addEventListener("click", () => {
   const selectedName = savedListsSelect.value;
   if (!selectedName) {
@@ -529,20 +554,22 @@ deleteBtn.addEventListener("click", () => {
 });
 
 // 前ボタン
-pcPrevBtn.addEventListener("click", () => {
+pcPrevBtn.addEventListener("click", (e) => {
+  e.stopPropagation(); // ダブルクリックイベントとの競合を防ぐ
   if (globalPCList.length === 0) return;
   if (currentDisplayIndex > 0) {
-    isUserNavigating = true; // 手動切替モードON
+    isUserNavigating = true; 
     currentDisplayIndex--;
     updateDisplayOnly();
   }
 });
 
 // 次ボタン
-pcNextBtn.addEventListener("click", () => {
+pcNextBtn.addEventListener("click", (e) => {
+  e.stopPropagation(); // ダブルクリックイベントとの競合を防ぐ
   if (globalPCList.length === 0) return;
   if (currentDisplayIndex < globalPCList.length - 1) {
-    isUserNavigating = true; // 手動切替モードON
+    isUserNavigating = true; 
     currentDisplayIndex++;
     updateDisplayOnly();
   }
@@ -650,10 +677,9 @@ function update(isDistanceOrInputChanged = false) {
   
   autoTrackIdx = detectedTrackIdx;
 
-  // 【修正】手動操作時以外（距離が変わった、または初期化時）のみ自動追従する
   if (isDistanceOrInputChanged || !isUserNavigating || currentDisplayIndex === -1 || currentDisplayIndex >= globalPCList.length) {
     if (isDistanceOrInputChanged) {
-      isUserNavigating = false; // 距離変更やリスト変更があった場合は自動追従に戻す
+      isUserNavigating = false; 
     }
     currentDisplayIndex = autoTrackIdx;
   }
@@ -732,6 +758,7 @@ resetBtn.addEventListener("click", () => {
     distance.value = "";
     pcInput.value = "";
     saveName.value = "";
+    tempDistanceValue = "";
 
     document.getElementById("elapsed").innerText = "--";
     document.getElementById("remainTime").innerText = "--";
@@ -748,7 +775,7 @@ resetBtn.addEventListener("click", () => {
 
     savedListsSelect.value = "";
 
-    isUserNavigating = false; // ナビゲーションもリセット
+    isUserNavigating = false; 
     menuContent.classList.remove("open");
     update(true);
     alert("指定された項目をリセットしました。");
