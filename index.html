@@ -244,7 +244,7 @@ input[type="datetime-local"] {
   transform: translateX(-50%);
   width: 1px;
   height: 4px;
-  background-color: #ffffff; /* 縦線を白色に変更 */
+  background-color: #ffffff;
 }
 
 /* 偶数用（下段）の配置スタイル */
@@ -259,7 +259,7 @@ input[type="datetime-local"] {
   transform: translateX(-50%);
   width: 1px;
   height: 17px; 
-  background-color: #ffffff; /* 縦線を白色に変更 */
+  background-color: #ffffff;
 }
 
 /* PC情報枠 */
@@ -290,15 +290,6 @@ input[type="datetime-local"] {
 .pc-nav-btn:active {
   background: #00d2ff;
   color: #000;
-}
-.pc-title-label {
-  color: #00d2ff;            
-  font-size: 15px;           
-  font-weight: bold;
-  line-height: 1.3;
-  text-align: center;
-  flex: 1;
-  padding: 0 4px;
 }
 .pc-title-label {
   color: #00d2ff;            
@@ -610,7 +601,7 @@ savedListsSelect.addEventListener("change", () => {
     pcInput.value = lists[selectedName];
     isUserNavigating = false; 
     update(true); 
-    alert("「" + selectedName + "」のリストを読み込み込みました。");
+    alert("「" + selectedName + "」のリストを読み込みました。");
   }
 });
 
@@ -727,13 +718,15 @@ function renderGraphScale(targetDistance) {
       const pct = (pc.dist / targetDistance) * 100;
       const isOdd = (index % 2 === 0);
       
-      // 名前に「PC」が含まれているかどうか判定
-      const hasPC = /PC/i.test(pc.id) || /PC/i.test(pc.name);
+      // 文字列（id または name）に「PC」が含まれているか正規表現でチェック
+      const isPcType = /PC/i.test(pc.id) || /PC/i.test(pc.name);
       
       let displayLabel = "";
-      if (hasPC) {
-        // PCの場合はID（PC1等）をそのまま表示
-        displayLabel = pc.id;
+      if (isPcType) {
+        // 【修正】「PC」が含まれる場合は「PC1」「PC2」「PC10」のように数字部分までを抽出して止める
+        // id（PC1、PC2等）から英字の「PC」とそれに続く数字だけを取り出す
+        const match = pc.id.match(/PC\d+/i);
+        displayLabel = match ? match[0].toUpperCase() : pc.id;
       } else {
         // PC以外の通過チェックやフォトの場合は、丸数字（①、②…）を割り当てる
         displayLabel = circleNumbers[nonPcCount] || `(${nonPcCount + 1})`;
