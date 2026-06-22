@@ -17,7 +17,7 @@
 body {
   background: #000;
   color: #fff;
-  padding: 10px;
+  padding: 6px; 
 }
 input, select, textarea {
   user-select: text !important;
@@ -34,27 +34,117 @@ input, select, textarea {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 8px 16px 8px;
+  padding: 4px 6px 8px 6px; 
   border-bottom: 1px solid #222; 
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 .header-title {
   font-family: 'Arial Black', Impact, sans-serif; 
-  font-size: 22px; 
+  font-size: 20px; 
   font-style: italic; 
   letter-spacing: 1px; 
   color: #ffffff; 
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-  text-align: left;
-  padding-right: 10px;
+}
+/* ヘッダー右側のボタンエリア */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.help-trigger {
+  font-size: 20px;
+  cursor: pointer;
+  color: #00e5ff;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+  padding: 2px 6px;
 }
 .menu-trigger {
-  font-size: 24px;
+  font-size: 22px; 
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 2px 6px;
   color: #ffffff; 
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-  flex-shrink: 0;
+}
+
+/* マニュアル用モーダル（ポップアップ） */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+.modal-overlay.open {
+  display: flex;
+}
+.modal-content {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+.modal-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #222;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #00e5ff;
+}
+.modal-close-btn {
+  background: #333;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #ddd;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+.modal-body h4 {
+  color: #fff;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  border-left: 3px solid #00aa66;
+  padding-left: 6px;
+  font-size: 14px;
+}
+.modal-body ul {
+  padding-left: 18px;
+  margin-bottom: 10px;
+}
+.modal-body blockquote {
+  background: #222;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  margin: 6px 0;
+  color: #aaa;
+  white-space: pre-wrap;
 }
 
 /* メニューエリア */
@@ -62,43 +152,52 @@ input, select, textarea {
   display: none;
   background: #222;
   border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
   border: 1px solid #444;
 }
 .menu-content.open {
   display: block;
 }
 .menu-label {
-  font-size: 14px;
+  font-size: 14px; 
   color: #aaa;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   display: block;
 }
+
+/* 見出しとトグルを横並びにするラッパー */
+.label-toggle-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
 textarea {
   width: 100%;
   background: #333;
   color: #fff;
   border: 1px solid #555;
-  padding: 10px;
-  font-size: 14px;
+  padding: 6px;
+  font-size: 13px; 
   border-radius: 4px;
-  height: 110px;
+  height: 80px;
+  resize: none;
 }
 
-/* メニュー内専用のボタン・入力欄スタイル */
 .menu-input-row {
   display: flex;
   gap: 6px;
-  margin-top: 6px;
-  margin-bottom: 12px;
+  margin-top: 4px;
+  margin-bottom: 8px;
 }
 .btn-save {
   background: #00aa66;
   color: white;
   border: none;
-  padding: 0 12px;
-  font-size: 14px;
+  padding: 0 10px;
+  font-size: 14px; 
   font-weight: bold;
   border-radius: 4px;
   cursor: pointer;
@@ -108,8 +207,8 @@ textarea {
   background: #444;
   color: #ff4444;
   border: 1px solid #ff4444;
-  padding: 0 12px;
-  font-size: 14px;
+  padding: 0 10px;
+  font-size: 14px; 
   font-weight: bold;
   border-radius: 4px;
   cursor: pointer;
@@ -120,96 +219,140 @@ textarea {
   background: #ff4444;
   color: white;
   border: none;
-  padding: 12px;
-  font-size: 16px;
+  padding: 10px;
+  font-size: 15px; 
   font-weight: bold;
   border-radius: 6px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
+
+/* トグルスイッチのスタイル */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #555;
+  transition: .3s;
+  border-radius: 22px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px; width: 16px;
+  left: 3px; bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .slider { background-color: #00aa66; }
+input:checked + .slider:before { transform: translateX(20px); }
 
 /* 共通カードスタイル */
 .slim-card {
   background: #1a1a1a;
-  border-radius: 10px;
-  padding: 6px 12px; 
+  border-radius: 8px;
+  padding: 5px 8px; 
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  transition: padding 0.2s ease;
 }
 .card-center {
   background: #1a1a1a;
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 8px;
+  padding: 8px 10px;
   text-align: center;
 }
 .label-center {
   display: block;
-  font-size: 13px;
+  font-size: 13px; 
   color: #bbb;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
   text-align: center;
 }
 .title {
-  font-size: 13px;
+  font-size: 13px; 
   color: #aaa;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   text-align: center;
+  transition: font-size 0.2s ease;
 }
 
 input, select {
   width: 100%;
-  padding: 10px;
-  font-size: 16px;
+  padding: 6px; 
+  font-size: 17px; 
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   background: #333;
   color: #fff;
   text-align: center;
   text-align-last: center; 
 }
+input[type="number"] {
+  transition: font-size 0.2s ease;
+}
 input[type="datetime-local"] {
-  font-size: 13px;
-  padding: 11px 4px;
+  font-size: 13px; 
+  padding: 7px 4px;
 }
 
-/* メニュー内用の行レイアウト */
 .menu-top-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 .half {
   flex: 1;
 }
 
 .current-time-display {
-  font-size: 24px;
+  font-size: 22px; 
   font-weight: bold;
   color: #00e5ff; 
   text-align: center;
+  transition: font-size 0.2s ease;
 }
 .value {
-  font-size: 24px;
+  font-size: 20px; 
   font-weight: bold;
   text-align: center;
+  transition: font-size 0.2s ease;
 }
 
-/* 動く進捗グラフエリア */
+/* 進捗グラフエリア */
 .progress-section {
   background: #111;
-  border-radius: 10px;
-  padding: 10px 14px 4px 14px; 
-  margin-bottom: 8px;
+  border-radius: 8px;
+  padding: 4px 10px; 
+  margin-bottom: 6px;
   border: 1px solid #222;
+}
+.graph-scale-container {
+  position: relative;
+  width: 100%;
+  height: 64px; 
+  margin: auto;
 }
 .graph-container {
   background-color: #222;
   border-radius: 4px;
-  height: 14px;
+  height: 10px; 
   width: 100%;
   overflow: hidden;
-  position: relative;
+  position: absolute;
+  top: 27px; 
+  left: 0;
+  z-index: 2;
 }
 .graph-bar {
   height: 100%;
@@ -218,60 +361,94 @@ input[type="datetime-local"] {
   border-radius: 4px;
   transition: width 0.4s ease-out;
 }
-.graph-scale-container {
-  position: relative;
-  width: 100%;
-  height: 34px;
-}
+
+/* 通常時の目盛りスタイル */
 .scale-point {
-  font-size: 10px;
-  color: #ffffff; 
+  font-size: 11px; 
+  font-weight: bold;
   position: absolute;
   transform: translateX(-50%);
   text-align: center;
   white-space: nowrap;
+  z-index: 3;
+  transition: transform 0.2s ease, font-size 0.2s ease, text-shadow 0.2s ease, top 0.15s ease, bottom 0.15s ease;
+  cursor: pointer;
 }
 
-/* 奇数用（上段）の配置スタイル */
-.scale-point.odd {
-  top: 5px;
-}
-.scale-point.odd::before {
+/* 視覚的な縦棒（目盛り線）用の共通擬似要素 */
+.scale-point::after {
   content: "";
   position: absolute;
-  top: -5px;
   left: 50%;
-  transform: translateX(-50%);
   width: 1px;
-  height: 4px;
-  background-color: #ffffff;
+  background-color: currentColor;
+  opacity: 0.4;
+  z-index: 1;
+  pointer-events: none;
 }
 
-/* 偶数用（下段）の配置スタイル */
-.scale-point.even {
-  top: 18px;
+/* 明滅アニメーション */
+@keyframes pulse-pc {
+  0% { text-shadow: 0 0 4px #00d2ff; }
+  50% { text-shadow: 0 0 10px #00d2ff, 0 0 14px #00d2ff; }
+  100% { text-shadow: 0 0 4px #00d2ff; }
 }
-.scale-point.even::before {
-  content: "";
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1px;
-  height: 17px; 
-  background-color: #ffffff;
+@keyframes pulse-shop {
+  0% { text-shadow: 0 0 4px #00ffaa; }
+  50% { text-shadow: 0 0 10px #00ffaa, 0 0 14px #00ffaa; }
+  100% { text-shadow: 0 0 4px #00ffaa; }
 }
 
-/* PC情報枠 */
+/* アクティブ（選択）時の文字位置と線の連動 */
+.scale-point.active-pc {
+  font-size: 15px !important; 
+  transform: translateX(-50%) scale(1.1);
+  z-index: 5;
+  animation: pulse-pc 9s infinite;
+}
+.scale-point.active-pc.pc-type-row0 { top: 3px !important; }  
+.scale-point.active-pc.pc-type-row1 { top: -6px !important; } 
+.scale-point.active-pc.pc-type-row0::after { top: 16px; height: 18px; opacity: 0.9; width: 1.5px; }
+.scale-point.active-pc.pc-type-row1::after { top: 16px; height: 27px; opacity: 0.9; width: 1.5px; }
+
+.scale-point.active-shop {
+  font-size: 15px !important; 
+  transform: translateX(-50%) scale(1.1);
+  z-index: 5;
+  animation: pulse-shop 9s infinite;
+}
+.scale-point.active-shop.shop-type-row0 { bottom: 3px !important; }  
+.scale-point.active-shop.shop-type-row1 { bottom: -6px !important; } 
+.scale-point.active-shop.shop-type-row0::after { bottom: 16px; height: 18px; opacity: 0.9; width: 1.5px; }
+.scale-point.active-shop.shop-type-row1::after { bottom: 16px; height: 27px; opacity: 0.9; width: 1.5px; }
+
+/* 通常時の位置定義（ベースライン） */
+.scale-point.pc-type { color: #00d2ff; }
+.scale-point.pc-type-row0::after { top: 13px; height: 14px; } 
+.scale-point.pc-type-row1::after { top: 13px; height: 23px; } 
+
+.scale-point.shop-type { color: #00ffaa; }
+.scale-point.shop-type-row0::after { bottom: 13px; height: 14px; } 
+.scale-point.shop-type-row1::after { bottom: 13px; height: 23px; } 
+
+.scale-point.neutral-type { top: 10px; color: #ffffff; }
+.scale-point.neutral-type::after { top: 13px; height: 14px; }
+
+
+/* ① PC専用情報枠（青） */
 .full-width-pc-card {
   width: 100%;
   background: #0a192f;      
   border: 1px solid #00d2ff; 
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 8px;
+  border-radius: 8px;
+  padding: 6px 10px 8px 10px; 
+  margin-bottom: 6px;
+  min-height: 162px; 
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
-.pc-header-row {
+.pc-top-nav-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -282,91 +459,175 @@ input[type="datetime-local"] {
   color: #00d2ff;
   border: 1px solid #00d2ff;
   border-radius: 4px;
-  padding: 3px 10px;
-  font-size: 13px;
+  padding: 3px 10px; 
+  font-size: 13px; 
   font-weight: bold;
   cursor: pointer;
+  flex-shrink: 0;
 }
-.pc-nav-btn:active {
-  background: #00d2ff;
-  color: #000;
+.pc-nav-btn:active { background: #00d2ff; color: #000; }
+.pc-distance-display {
+  font-size: 24px; 
+  font-weight: bold;
+  color: #ffff00; 
+  text-align: center;
+  cursor: pointer;
+  flex: 1;
+}
+.pc-bottom-title-row {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 6px;
+  border-bottom: 1px dashed rgba(0, 210, 255, 0.3);
+  padding-bottom: 4px;
+  height: 40px; 
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer; 
 }
 .pc-title-label {
   color: #00d2ff;            
   font-size: 15px;           
   font-weight: bold;
   line-height: 1.3;
-  text-align: center;
-  flex: 1;
-  padding: 0 4px;
-}
-.pc-main-row {
-  display: flex;
-  justify-content: center; 
-  align-items: baseline;
-  margin-bottom: 10px;
-  border-bottom: 1px dashed rgba(0, 210, 255, 0.3);
-  padding-bottom: 6px;
+  word-break: keep-all; 
+  overflow-wrap: anywhere;
 }
 
-/* 速度グリッド */
-.pc-speed-grid {
+
+/* ② コンビニ・休憩専用情報枠（緑） */
+.full-width-shop-card {
+  width: 100%;
+  background: #061f14;      
+  border: 1px solid #00ffaa; 
+  border-radius: 8px;
+  padding: 6px 10px 8px 10px; 
+  margin-bottom: 6px;
+  min-height: 102px; 
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.shop-top-nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.shop-nav-btn {
+  background: #0d3824;
+  color: #00ffaa;
+  border: 1px solid #00ffaa;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 13px; 
+  font-weight: bold;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.shop-nav-btn:active { background: #00ffaa; color: #000; }
+.shop-distance-display {
+  font-size: 24px; 
+  font-weight: bold;
+  color: #ffff00; 
+  text-align: center;
+  cursor: pointer;
+  flex: 1;
+}
+.shop-bottom-title-row {
+  width: 100%;
+  text-align: center;
+  margin-top: 2px;
+  height: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer; 
+}
+.shop-title-label {
+  color: #00ffaa;            
+  font-size: 15px;           
+  font-weight: bold;
+  line-height: 1.3;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+
+/* 速度表示共通グリッド */
+.speed-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr); 
-  gap: 8px 4px; 
+  gap: 4px 4px; 
   text-align: center;
 }
-.pc-speed-cell {
+.speed-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 .pc-speed-th {
-  font-size: 13px; 
+  font-size: 12px; 
   color: #00d2ff;
   font-weight: normal;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
-.pc-speed-td {
-  font-size: 16px; 
+.speed-td {
+  font-size: 15px; 
   font-weight: bold;
   color: #ffffff;
+  transition: font-size 0.2s ease;
 }
 
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 /* 貯金時間 */
 .slim-big-card {
   background: #1a1a1a;
-  border-radius: 10px;
-  padding: 6px 12px; 
-  margin-top: 4px;
+  border-radius: 8px;
+  padding: 4px 10px; 
+  margin-top: 2px;
+  transition: padding 0.2s ease;
 }
 .big-value {
-  font-size: 38px; 
+  font-size: 30px; 
   font-weight: bold;
   text-align: center;
-  margin-top: 2px;
+  margin-top: 1px;
   display: block;
   width: 100%;
+  transition: font-size 0.2s ease;
 }
 
-/* フッター */
+/* ショップ非表示（OFF）時の拡大用スタイル */
+body.shop-off .slim-card { padding: 10px 8px; }
+body.shop-off .title { font-size: 15px; }
+body.shop-off #distance { font-size: 25px !important; }
+body.shop-off .current-time-display { font-size: 25px; }
+body.shop-off .value { font-size: 23px; }
+body.shop-off .full-width-pc-card { padding: 10px 10px 12px 10px; min-height: 188px; }
+body.shop-off .pc-distance-display { font-size: 28px !important; }
+body.shop-off .pc-title-label { font-size: 17px; }
+body.shop-off .speed-td { font-size: 17px; }
+body.shop-off .slim-big-card { padding: 12px 10px; }
+body.shop-off .big-value { font-size: 36px; }
+
 .footer {
-  margin-top: 25px;
-  margin-bottom: 15px;
+  margin-top: 15px;
+  margin-bottom: 5px;
   text-align: center;
-  font-size: 12px;
-  color: #666;
-  letter-spacing: 0.5px;
+  font-size: 11px;
+  color: #556;
 }
 
-/* 強調色 */
 .green { color: #00ff66; }
 .yellow { color: #ffcc00; }
 .red { color: #ff4444; }
@@ -378,7 +639,54 @@ input[type="datetime-local"] {
 
   <div class="header">
     <div class="header-title">BRM PACE MANAGER</div>
-    <div class="menu-trigger" id="menuTrigger">☰</div>
+    <div class="header-actions">
+      <div class="help-trigger" id="helpTrigger">❓</div>
+      <div class="menu-trigger" id="menuTrigger">☰</div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">📖 アプリ使用マニュアル</div>
+        <button class="modal-close-btn" id="modalCloseBtn">閉じる</button>
+      </div>
+      <div class="modal-body">
+        <h4>1. 事前準備 (☰ メメニュー)</h4>
+        <ul>
+          <li><strong>BRM設定:</strong> 距離と制限時間枠を選びます。</li>
+          <li><strong>START日時:</strong> ウェーブの出発時刻を正確に入力します。</li>
+          <li><strong>① 公式PCリスト:</strong> 「PC1, 地点名, 距離km」で改行入力。</li>
+          <li><strong>② 休憩スポット:</strong> 「店舗名, 距離」で改行入力します。</li>
+        </ul>
+
+        <h4>2. 走行中の基本操作</h4>
+        <ul>
+          <li><strong>現在距離の更新:</strong> サイコンの積算距離を入力。入力欄タップで一度全クリアされ、打ち替えがスムーズです。</li>
+          <li><strong>目標ペース設計:</strong> PC枠内の15〜20km/h各グロス速度に応じた到着予想時刻を目安に走ります。</li>
+        </ul>
+
+        <h4>3. ナビゲーションとマップ連動</h4>
+        <ul>
+          <li><strong>先行プレビュー:</strong> 各カードの <code>◀ 前</code> <code>次 ▶</code> ボタンで、距離に関係なく先々の地点を自由に確認可能。</li>
+          <li><strong>自動追従へ復帰:</strong> プレビュー中に中央の黄色の距離表示（<code>残り~km</code>）を<strong>ダブルクリック</strong>すると、現在地ベースの「次のスポット」に一発復帰します。</li>
+          <li><strong>マップ検索:</strong> 各カードの「地点名エリア」を<strong>ダブルクリック</strong>すると、その場所をマップで即座に検索できます（メニュー内連動ON時のみ）。</li>
+        </ul>
+
+        <h4>4. 表示のカスタマイズ</h4>
+        <ul>
+          <li>メニュー内の「② コンビニ…」右側のトグルをOFFにすると、休憩枠が隠れ、残ったPC情報や最下段の<strong>「貯金時間」が自動で大きく拡大表示</strong>され、夜間も見やすくなります。</li>
+        </ul>
+
+        <h4>5. 各種ステータス</h4>
+        <ul>
+          <li><strong>必要平均:</strong> 制限時間内にゴールする最低グロス速度。15km/hに近づくと危険です。</li>
+          <li><strong>貯金時間:</strong> 制限時間に対する現在のアドバンテージ。
+            <br><span class="green">🟢 2時間以上</span> / <span class="yellow">🟡 1時間以上</span> / <span class="red">🔴 1時間未満（危険）</span>
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 
   <div class="menu-content" id="menuContent">
@@ -399,22 +707,46 @@ input[type="datetime-local"] {
     </div>
 
     <div style="margin-bottom: 8px;">
-      <label class="menu-label">PCリスト登録 (貼り付け用)</label>
-      <textarea id="pcInput" placeholder="例:&#10;PC1, 御幸橋① フォト, 24.9km&#10;PC2、山城大橋 フォト，38.0km"></textarea>
+      <div class="label-toggle-wrapper">
+        <label class="menu-label" style="margin-bottom: 0;">① 公式PC・通過チェック リスト登録</label>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 11px; color: #aaa;">Wクリック地図連動</span>
+          <label class="switch">
+            <input type="checkbox" id="mapDblClickToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <textarea id="pcInput" placeholder="例:
+PC1, 御幸橋, 24.9km
+PC2, 山城大橋, 68.0km"></textarea>
     </div>
 
-    <div style="margin-bottom: 10px;">
-      <label class="menu-label">現在のリストを保存する</label>
+    <div style="margin-bottom: 8px;" id="menuShopInputWrapper">
+      <div class="label-toggle-wrapper">
+        <label class="menu-label" style="margin-bottom: 0;">② コンビニ・休憩・任意スポット リスト登録</label>
+        <label class="switch">
+          <input type="checkbox" id="shopToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <textarea id="shopInput" placeholder="例:
+ローソン 八幡南店, 32.1
+セブン 宇治川店, 50.4"></textarea>
+    </div>
+
+    <div style="margin-bottom: 8px;">
+      <label class="menu-label">現在のリスト一式を保存する</label>
       <div class="menu-input-row">
-        <input type="text" id="saveName" placeholder="例: BRM315泉佐野" style="font-size:14px; padding:6px; text-align:left;">
+        <input type="text" id="saveName" placeholder="例: BRM315泉佐野" style="font-size:13px; padding:5px; text-align:left;">
         <button class="btn-save" id="saveBtn">保存</button>
       </div>
     </div>
 
-    <div style="margin-bottom: 15px;">
+    <div style="margin-bottom: 10px;">
       <label class="menu-label">保存済みリストの呼び出し / 削除</label>
       <div class="menu-input-row">
-        <select id="savedListsSelect" style="font-size:14px; padding:6px; text-align:left; text-align-last:left;">
+        <select id="savedListsSelect" style="font-size:13px; padding:5px; text-align:left; text-align-last:left;">
           <option value="">-- 保存データがありません --</option>
         </select>
         <button class="btn-delete" id="deleteBtn">削除</button>
@@ -427,7 +759,7 @@ input[type="datetime-local"] {
   <div class="grid">
     <div class="slim-card">
       <div class="title">現在距離</div>
-      <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:24px; color:#00ff66; padding: 2px; text-align: center; background: transparent;">
+      <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:22px; color:#00ff66; padding: 2px; text-align: center; background: transparent;">
     </div>
     <div class="slim-card">
       <div class="title">現在時間</div>
@@ -436,31 +768,43 @@ input[type="datetime-local"] {
   </div>
 
   <div class="progress-section">
-    <div class="graph-container">
-      <div id="graphBar" class="graph-bar"></div>
-    </div>
     <div class="graph-scale-container" id="graphScale">
+      <div class="graph-container">
+        <div id="graphBar" class="graph-bar"></div>
       </div>
+    </div>
   </div>
 
   <div class="card full-width-pc-card" id="pcCard">
-    <div class="pc-header-row">
+    <div class="pc-top-nav-row">
       <button class="pc-nav-btn" id="pcPrevBtn">◀ 前</button>
-      <div id="pcLabel" class="pc-title-label">NEXT: PC-</div>
+      <div class="pc-distance-display" id="pcRemainDist">残り -- km</div>
       <button class="pc-nav-btn" id="pcNextBtn">次 ▶</button>
     </div>
     
-    <div class="pc-main-row">
-      <div class="value highlight" id="pcRemainDist" style="font-size:26px; text-align: center; cursor: pointer; padding: 0 20px;">残り -- km</div>
+    <div class="pc-bottom-title-row" id="pcTitleRow">
+      <div id="pcLabel" class="pc-title-label">次: PC-</div>
     </div>
     
-    <div class="pc-speed-grid">
-      <div class="pc-speed-cell"><div class="pc-speed-th">15km/h</div><div class="pc-speed-td" id="sp15">--:--</div></div>
-      <div class="pc-speed-cell"><div class="pc-speed-th">16km/h</div><div class="pc-speed-td" id="sp16">--:--</div></div>
-      <div class="pc-speed-cell"><div class="pc-speed-th">17km/h</div><div class="pc-speed-td" id="sp17">--:--</div></div>
-      <div class="pc-speed-cell"><div class="pc-speed-th">18km/h</div><div class="pc-speed-td" id="sp18">--:--</div></div>
-      <div class="pc-speed-cell"><div class="pc-speed-th">19km/h</div><div class="pc-speed-td" id="sp19">--:--</div></div>
-      <div class="pc-speed-cell"><div class="pc-speed-th">20km/h</div><div class="pc-speed-td" id="sp20">--:--</div></div>
+    <div class="speed-grid">
+      <div class="speed-cell"><div class="pc-speed-th">15km/h</div><div class="speed-td" id="pc_sp15">--:--</div></div>
+      <div class="speed-cell"><div class="pc-speed-th">16km/h</div><div class="speed-td" id="pc_sp16">--:--</div></div>
+      <div class="speed-cell"><div class="pc-speed-th">17km/h</div><div class="speed-td" id="pc_sp17">--:--</div></div>
+      <div class="speed-cell"><div class="pc-speed-th">18km/h</div><div class="speed-td" id="pc_sp18">--:--</div></div>
+      <div class="speed-cell"><div class="pc-speed-th">19km/h</div><div class="speed-td" id="pc_sp19">--:--</div></div>
+      <div class="speed-cell"><div class="pc-speed-th">20km/h</div><div class="speed-td" id="pc_sp20">--:--</div></div>
+    </div>
+  </div>
+
+  <div class="card full-width-shop-card" id="shopCard">
+    <div class="shop-top-nav-row">
+      <button class="shop-nav-btn" id="shopPrevBtn">◀ 前</button>
+      <div class="shop-distance-display" id="shopRemainDist">残り -- km</div>
+      <button class="shop-nav-btn" id="shopNextBtn">次 ▶</button>
+    </div>
+    
+    <div class="shop-bottom-title-row" id="shopTitleRow">
+      <div id="shopLabel" class="shop-title-label">次休憩: ---</div>
     </div>
   </div>
 
@@ -474,7 +818,7 @@ input[type="datetime-local"] {
   </div>
 
   <div class="slim-big-card">
-    <div class="title" style="font-size: 15px;">貯金時間</div>
+    <div class="title" style="font-size: 13px;">貯金時間</div>
     <div class="big-value" id="saving">--</div>
   </div>
 
@@ -489,12 +833,29 @@ const brm = document.getElementById("brm");
 const startTime = document.getElementById("startTime");
 const distance = document.getElementById("distance");
 const pcInput = document.getElementById("pcInput");
+const shopInput = document.getElementById("shopInput");
 const menuTrigger = document.getElementById("menuTrigger");
 const menuContent = document.getElementById("menuContent");
 const resetBtn = document.getElementById("resetBtn");
+const shopToggle = document.getElementById("shopToggle");
+const mapDblClickToggle = document.getElementById("mapDblClickToggle");
+const shopCard = document.getElementById("shopCard");
+
+// ヘルプモーダル関連
+const helpTrigger = document.getElementById("helpTrigger");
+const helpModal = document.getElementById("helpModal");
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+
 const pcPrevBtn = document.getElementById("pcPrevBtn");
 const pcNextBtn = document.getElementById("pcNextBtn");
 const pcRemainDist = document.getElementById("pcRemainDist");
+const pcTitleRow = document.getElementById("pcTitleRow");
+
+const shopPrevBtn = document.getElementById("shopPrevBtn");
+const shopNextBtn = document.getElementById("shopNextBtn");
+const shopRemainDist = document.getElementById("shopRemainDist");
+const shopTitleRow = document.getElementById("shopTitleRow");
+
 const graphBar = document.getElementById("graphBar");
 const graphScale = document.getElementById("graphScale");
 
@@ -503,20 +864,90 @@ const saveBtn = document.getElementById("saveBtn");
 const savedListsSelect = document.getElementById("savedListsSelect");
 const deleteBtn = document.getElementById("deleteBtn");
 
-const defaultPCList = "PC1, 御幸橋① フォト, 24.9km\nPC2, 山城大橋 フォト, 38.0km";
+const circleNumbers = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳"];
 
-let globalPCList = [];
-let currentDisplayIndex = -1; 
-let autoTrackIdx = -1;        
-let isUserNavigating = false; 
+const defaultPCList = "PC1, 御幸橋, 24.9km\nPC2, 山城大橋, 68.0km";
+const defaultShopList = "ローソン 八幡南店, 32.1\nセブン 宇治川店, 50.4";
+
+let globalPCList = [];   
+let globalShopList = []; 
+
+let pcDisplayIdx = -1; 
+let pcAutoTrackIdx = -1;        
+let isPcUserNavigating = false; 
+
+let shopDisplayIdx = -1;
+let shopAutoTrackIdx = -1;
+let isShopUserNavigating = false;
+
 let tempDistanceValue = ""; 
+
+function toHalfWidthAlphaNum(str) {
+  return str.replace(/[！-～]/g, function(s) {
+    return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+  }).replace(/[\s ]+/g, '').toUpperCase();
+}
 
 startTime.value = localStorage.getItem("startTime") || "";
 brm.value = localStorage.getItem("brm") || "200,13.5";
 distance.value = localStorage.getItem("distance") || "";
-pcInput.value = localStorage.getItem("pcList") || defaultPCList;
+pcInput.value = localStorage.getItem("pcList3") || defaultPCList;
+shopInput.value = localStorage.getItem("shopList3") || defaultShopList;
 
+const savedToggleState = localStorage.getItem("shopToggleState");
+if (savedToggleState === "false") {
+  shopToggle.checked = false;
+  document.body.classList.add("shop-off");
+  shopCard.style.display = "none";
+  if(document.getElementById("shopInput")) document.getElementById("shopInput").style.display = "none";
+} else {
+  shopToggle.checked = true;
+  document.body.classList.remove("shop-off");
+  shopCard.style.display = "block";
+  if(document.getElementById("shopInput")) document.getElementById("shopInput").style.display = "block";
+}
+
+const savedMapDblClickState = localStorage.getItem("mapDblClickState");
+if (savedMapDblClickState === "false") {
+  mapDblClickToggle.checked = false;
+} else {
+  mapDblClickToggle.checked = true;
+}
+
+// メメニュー・ヘルプ開閉イベント
 menuTrigger.addEventListener("click", () => menuContent.classList.toggle("open"));
+
+helpTrigger.addEventListener("click", () => {
+  helpModal.classList.add("open");
+});
+modalCloseBtn.addEventListener("click", () => {
+  helpModal.classList.remove("open");
+});
+helpModal.addEventListener("click", (e) => {
+  if (e.target === helpModal) {
+    helpModal.classList.remove("open");
+  }
+});
+
+shopToggle.addEventListener("change", () => {
+  localStorage.setItem("shopToggleState", shopToggle.checked);
+  if (shopToggle.checked) {
+    document.body.classList.remove("shop-off");
+    shopCard.style.display = "block";
+    if(document.getElementById("shopInput")) document.getElementById("shopInput").style.display = "block";
+  } else {
+    document.body.classList.add("shop-off");
+    shopCard.style.display = "none";
+    if(document.getElementById("shopInput")) document.getElementById("shopInput").style.display = "none";
+  }
+  const [targetDistance] = brm.value.split(",").map(Number);
+  renderGraphScale(targetDistance);
+  updateDisplayOnly();
+});
+
+mapDblClickToggle.addEventListener("change", () => {
+  localStorage.setItem("mapDblClickState", mapDblClickToggle.checked);
+});
 
 distance.addEventListener("focus", () => {
   tempDistanceValue = distance.value; 
@@ -530,20 +961,76 @@ distance.addEventListener("blur", () => {
   }
 });
 
-pcRemainDist.addEventListener("dblclick", () => {
-  if (isUserNavigating) {
-    isUserNavigating = false; 
-    currentDisplayIndex = autoTrackIdx; 
-    updateDisplayOnly();
+// 【方法1】OSやMonaca環境に応じた外部アプリ起動制御関数
+function searchOnGoogleMap(keyword) {
+  if (!mapDblClickToggle.checked) return; 
+  if (!keyword || keyword.includes("ゴール") || keyword.includes("登録なし") || keyword.includes("---")) return;
+  
+  const userAgent = navigator.userAgent.toLowerCase();
+  let url = "";
+
+  if (/iphone|ipad|ipod/.test(userAgent)) {
+    // iOS: 標準マップ起動URL（Appleマップが起動しますが、Googleマップ派の人でも対応アプリ切り替えがスムーズなため最適）
+    url = "http://maps.apple.com/?q=" + encodeURIComponent(keyword);
+  } else if (/android/.test(userAgent)) {
+    // Android: Googleマップアプリのインテントを直接立ち上げるgeoスキーム
+    url = "geo:0,0?q=" + encodeURIComponent(keyword);
+  } else {
+    // PCなどのデスクトップブラウザ環境用
+    url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(keyword);
+  }
+
+  // Monaca (Cordova) 環境特有の処理
+  // '_system' を使うことで、MonacaのWebView内ではなく、端末自体の標準アプリに処理を任せます
+  if (window.cordova) {
+    window.open(url, '_system');
+  } else {
+    // 通常のWEBブラウザ（PCなどでのデバッグ用）
+    if (/android/.test(userAgent) && !window.cordova) {
+      url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(keyword);
+    }
+    window.open(url, '_blank');
+  }
+}
+
+pcRemainDist.addEventListener("dblclick", (e) => {
+  e.stopPropagation();
+  if (isPcUserNavigating) {
+    isPcUserNavigating = false; 
+    pcDisplayIdx = pcAutoTrackIdx; 
+    update(true);
   }
 });
 
+pcTitleRow.addEventListener("dblclick", (e) => {
+  e.stopPropagation();
+  if (globalPCList.length > 0 && pcDisplayIdx !== -1) {
+    const item = globalPCList[pcDisplayIdx];
+    searchOnGoogleMap(item.id + " " + item.name);
+  }
+});
+
+shopRemainDist.addEventListener("dblclick", (e) => {
+  e.stopPropagation();
+  if (isShopUserNavigating) {
+    isShopUserNavigating = false;
+    shopDisplayIdx = shopAutoTrackIdx;
+    update(true);
+  }
+});
+
+shopTitleRow.addEventListener("dblclick", (e) => {
+  e.stopPropagation();
+  if (globalShopList.length > 0 && shopDisplayIdx !== -1) {
+    searchOnGoogleMap(globalShopList[shopDisplayIdx].name);
+  }
+});
+
+
 function loadSavedListsDropdown() {
-  const savedData = localStorage.getItem("customPCLists");
+  const savedData = localStorage.getItem("customBRMDataSets3");
   let lists = savedData ? JSON.parse(savedData) : {};
-  
   savedListsSelect.innerHTML = "";
-  
   const keys = Object.keys(lists);
   if (keys.length === 0) {
     const opt = document.createElement("option");
@@ -552,12 +1039,10 @@ function loadSavedListsDropdown() {
     savedListsSelect.appendChild(opt);
     return;
   }
-  
   const defaultOpt = document.createElement("option");
   defaultOpt.value = "";
   defaultOpt.innerText = "-- リストを選択して呼び出し --";
   savedListsSelect.appendChild(defaultOpt);
-  
   keys.forEach(key => {
     const opt = document.createElement("option");
     opt.value = key;
@@ -568,89 +1053,98 @@ function loadSavedListsDropdown() {
 
 saveBtn.addEventListener("click", () => {
   const name = saveName.value.trim();
-  const text = pcInput.value.trim();
-  
-  if (!name) {
-    alert("保存する名前を入力してください。");
-    return;
-  }
-  if (!text) {
-    alert("保存するPCリストの中身が空です。");
-    return;
-  }
-  
-  const savedData = localStorage.getItem("customPCLists");
+  if (!name) { alert("保存する名前を入力してください。"); return; }
+  const savedData = localStorage.getItem("customBRMDataSets3");
   let lists = savedData ? JSON.parse(savedData) : {};
   
-  lists[name] = text;
-  localStorage.setItem("customPCLists", JSON.stringify(lists));
+  lists[name] = {
+    pc: pcInput.value.trim(),
+    shop: shopInput.value.trim()
+  };
   
+  localStorage.setItem("customBRMDataSets3", JSON.stringify(lists));
   saveName.value = ""; 
   loadSavedListsDropdown(); 
-  alert("リスト「" + name + "」を保存しました。");
+  alert("セット「" + name + "」を保存しました。");
 });
 
 savedListsSelect.addEventListener("change", () => {
   const selectedName = savedListsSelect.value;
   if (!selectedName) return;
-  
-  const savedData = localStorage.getItem("customPCLists");
+  const savedData = localStorage.getItem("customBRMDataSets3");
   let lists = savedData ? JSON.parse(savedData) : {};
-  
   if (lists[selectedName]) {
-    pcInput.value = lists[selectedName];
-    isUserNavigating = false; 
+    const data = lists[selectedName];
+    pcInput.value = data.pc || "";
+    shopInput.value = data.shop || "";
+    isPcUserNavigating = false; 
+    isShopUserNavigating = false;
     update(true); 
-    alert("「" + selectedName + "」のリストを読み込みました。");
+    alert("「" + selectedName + "」のデータを読み込みました。");
   }
 });
 
 deleteBtn.addEventListener("click", () => {
   const selectedName = savedListsSelect.value;
-  if (!selectedName) {
-    alert("削除したいリストを選択してください。");
-    return;
-  }
-  
+  if (!selectedName) { alert("削除したいリストを選択してください。"); return; }
   if (confirm("リスト「" + selectedName + "」を削除してもよろしいですか？")) {
-    const savedData = localStorage.getItem("customPCLists");
+    const savedData = localStorage.getItem("customBRMDataSets3");
     let lists = savedData ? JSON.parse(savedData) : {};
-    
     delete lists[selectedName];
-    localStorage.setItem("customPCLists", JSON.stringify(lists));
-    
+    localStorage.setItem("customBRMDataSets3", JSON.stringify(lists));
     loadSavedListsDropdown(); 
     alert("削除しました。");
   }
 });
 
-pcPrevBtn.addEventListener("click", (e) => {
+pcPrevBtn.addEventListener("click", () => {
   if (globalPCList.length === 0) return;
-  if (currentDisplayIndex > 0) {
-    isUserNavigating = true; 
-    currentDisplayIndex--;
-    updateDisplayOnly();
+  if (pcDisplayIdx > 0) { 
+    isPcUserNavigating = true; 
+    pcDisplayIdx--; 
+    const [targetDistance] = brm.value.split(",").map(Number);
+    renderGraphScale(targetDistance);
+    updateDisplayOnly(); 
+  }
+});
+pcNextBtn.addEventListener("click", () => {
+  if (globalPCList.length === 0) return;
+  if (pcDisplayIdx < globalPCList.length - 1) { 
+    isPcUserNavigating = true; 
+    pcDisplayIdx++; 
+    const [targetDistance] = brm.value.split(",").map(Number);
+    renderGraphScale(targetDistance);
+    updateDisplayOnly(); 
   }
 });
 
-pcNextBtn.addEventListener("click", (e) => {
-  if (globalPCList.length === 0) return;
-  if (currentDisplayIndex < globalPCList.length - 1) {
-    isUserNavigating = true; 
-    currentDisplayIndex++;
-    updateDisplayOnly();
+shopPrevBtn.addEventListener("click", () => {
+  if (globalShopList.length === 0) return;
+  if (shopDisplayIdx > 0) { 
+    isShopUserNavigating = true; 
+    shopDisplayIdx--; 
+    const [targetDistance] = brm.value.split(",").map(Number);
+    renderGraphScale(targetDistance);
+    updateDisplayOnly(); 
+  }
+});
+shopNextBtn.addEventListener("click", () => {
+  if (globalShopList.length === 0) return;
+  if (shopDisplayIdx < globalShopList.length - 1) { 
+    isShopUserNavigating = true; 
+    shopDisplayIdx++; 
+    const [targetDistance] = brm.value.split(",").map(Number);
+    renderGraphScale(targetDistance);
+    updateDisplayOnly(); 
   }
 });
 
 function formatArrivalDate(targetDate, startStr) {
   if (!startStr) return "--:--";
   const start = new Date(startStr);
-  
   const hrs = String(targetDate.getHours()).padStart(2, '0');
   const mins = String(targetDate.getMinutes()).padStart(2, '0');
-  
   const isNextDay = targetDate.getDate() !== start.getDate() || targetDate.getMonth() !== start.getMonth();
-  
   if (isNextDay) {
     const dayLabels = ["日", "月", "火", "水", "木", "金", "土"];
     return dayLabels[targetDate.getDay()] + ")" + hrs + ":" + mins;
@@ -659,29 +1153,8 @@ function formatArrivalDate(targetDate, startStr) {
 }
 
 function updateDisplayOnly() {
-  if (globalPCList.length === 0 || currentDisplayIndex === -1) return;
-  
-  const selectedPC = globalPCList[currentDisplayIndex];
   const currentDist = parseFloat(distance.value) || 0;
-  const diffDist = selectedPC.dist - currentDist;
-
-  let prefix = "";
-  if (currentDisplayIndex === autoTrackIdx) {
-    prefix = "NEXT: ";
-  } else if (currentDisplayIndex < autoTrackIdx) {
-    prefix = "通過済: ";
-  } else {
-    prefix = "先々: ";
-  }
-
-  document.getElementById("pcLabel").innerText = prefix + selectedPC.id + " " + selectedPC.name + "（" + selectedPC.dist.toFixed(1) + "km）";
-
-  if (diffDist >= 0) {
-    pcRemainDist.innerText = "残り " + diffDist.toFixed(1) + " km";
-  } else {
-    pcRemainDist.innerText = "通過後 " + Math.abs(diffDist).toFixed(1) + " km";
-  }
-
+  
   let startReady = false;
   let start = null;
   if (startTime.value) {
@@ -689,71 +1162,179 @@ function updateDisplayOnly() {
     if (!isNaN(start.getTime())) startReady = true;
   }
 
-  if (startReady) {
+  if (globalPCList.length > 0 && pcDisplayIdx !== -1) {
+    const selectedPC = globalPCList[pcDisplayIdx];
+    const diffDist = selectedPC.dist - currentDist;
+    let prefix = (pcDisplayIdx === pcAutoTrackIdx) ? "次: " : (pcDisplayIdx < pcAutoTrackIdx ? "通過: " : "先々: ");
+    
+    let rawDist = selectedPC.dist.toFixed(1);
+    document.getElementById("pcLabel").innerText = prefix + selectedPC.id + " " + selectedPC.name + "（" + rawDist + "km）";
+    pcRemainDist.innerText = diffDist >= 0 ? "残り " + diffDist.toFixed(1) + " km" : "通過後 " + Math.abs(diffDist).toFixed(1) + " km";
+
     const speeds = [15, 16, 17, 18, 19, 20];
     speeds.forEach(speed => {
-      const totalHoursFromStart = selectedPC.dist / speed;
-      const arrivalDate = new Date(start.getTime() + totalHoursFromStart * 3600000);
-      document.getElementById("sp" + speed).innerText = formatArrivalDate(arrivalDate, startTime.value);
+      const el = document.getElementById("pc_sp" + speed);
+      if (startReady) {
+        const arrivalDate = new Date(start.getTime() + (selectedPC.dist / speed) * 3600000);
+        el.innerText = formatArrivalDate(arrivalDate, startTime.value);
+      } else { el.innerText = "--:--"; }
     });
   } else {
-    ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
+    document.getElementById("pcLabel").innerText = "次: ゴール";
+    pcRemainDist.innerText = "残り 0.0 km";
+    ["15","16","17","18","19","20"].forEach(s => document.getElementById("pc_sp" + s).innerText = "--:--");
+  }
+
+  if (shopToggle.checked && globalShopList.length > 0 && shopDisplayIdx !== -1) {
+    const selectedShop = globalShopList[shopDisplayIdx];
+    const diffDist = selectedShop.dist - currentDist;
+    let prefix = (shopDisplayIdx === shopAutoTrackIdx) ? "次休憩: " : (shopDisplayIdx < shopAutoTrackIdx ? "通過休憩: " : "先々休憩: ");
+    
+    let rawDist = selectedShop.dist.toFixed(1);
+    document.getElementById("shopLabel").innerText = prefix + selectedShop.id + " " + selectedShop.name + "（" + rawDist + "km）";
+    shopRemainDist.innerText = diffDist >= 0 ? "残り " + diffDist.toFixed(1) + " km" : "通過後 " + Math.abs(diffDist).toFixed(1) + " km";
+  } else {
+    document.getElementById("shopLabel").innerText = "次休憩: 登録なし";
+    shopRemainDist.innerText = "残り -- km";
   }
 }
 
-// 千鳥配置に対応したグラフ目盛りレンダリング関数
 function renderGraphScale(targetDistance) {
-  graphScale.innerHTML = ""; 
-  
-  // スタート地点 (0km)
-  createScalePoint(0, "START", true);
+  const items = graphScale.querySelectorAll(".scale-point");
+  items.forEach(el => el.remove());
 
-  // PC以外のチェックポイントに割り当てる丸数字用のカウンター
-  const circleNumbers = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳"];
-  let nonPcCount = 0;
+  createScalePoint(0, "START", "neutral-type", "10px", null);
+  createScalePoint(100, "GOAL", "neutral-type", "10px", null);
 
-  // 各PC地点をループ
-  globalPCList.forEach((pc, index) => {
-    if (pc.dist < targetDistance) {
-      const pct = (pc.dist / targetDistance) * 100;
-      const isOdd = (index % 2 === 0);
+  let lastPctPC = -999;
+  let useUpperRowPC = false;
+
+  globalPCList.forEach((p, idx) => {
+    if (p.dist < targetDistance) {
+      const pct = (p.dist / targetDistance) * 100;
+      let label = String(p.id).split(/[\s,，、]/)[0];
+      if (label.length > 6) { label = label.substring(0, 4); }
+
+      const isActive = (idx === pcDisplayIdx); 
       
-      // 文字列（id または name）に「PC」が含まれているか正規表現でチェック
-      const isPcType = /PC/i.test(pc.id) || /PC/i.test(pc.name);
-      
-      let displayLabel = "";
-      if (isPcType) {
-        // 【修正】「PC」が含まれる場合は「PC1」「PC2」「PC10」のように数字部分までを抽出して止める
-        // id（PC1、PC2等）から英字の「PC」とそれに続く数字だけを取り出す
-        const match = pc.id.match(/PC\d+/i);
-        displayLabel = match ? match[0].toUpperCase() : pc.id;
+      if (pct - lastPctPC < 4.5) {
+        useUpperRowPC = !useUpperRowPC;
       } else {
-        // PC以外の通過チェックやフォトの場合は、丸数字（①、②…）を割り当てる
-        displayLabel = circleNumbers[nonPcCount] || `(${nonPcCount + 1})`;
-        nonPcCount++;
+        useUpperRowPC = false;
       }
+
+      let typeClass = "pc-type " + (useUpperRowPC ? "pc-type-row1" : "pc-type-row0");
+      if (isActive) typeClass += " active-pc";
       
-      createScalePoint(pct, displayLabel, isOdd);
+      let topPos = useUpperRowPC ? "1px" : "10px";
+      createScalePoint(pct, label, typeClass, topPos, null);
+      
+      lastPctPC = pct;
     }
   });
 
-  // ゴール地点 (MAX km)
-  createScalePoint(100, "GOAL", false);
+  if (shopToggle.checked) {
+    let lastPctShop = -999;
+    let useLowerRowShop = false;
+
+    globalShopList.forEach((s, idx) => {
+      if (s.dist < targetDistance) {
+        const pct = (s.dist / targetDistance) * 100;
+        let label = String(s.id).split(/[\s,，、]/)[0];
+        if (label.length > 6) { label = label.substring(0, 4); }
+
+        const isActive = (idx === shopDisplayIdx);
+
+        if (pct - lastPctShop < 4.5) {
+          useLowerRowShop = !useLowerRowShop;
+        } else {
+          useLowerRowShop = false;
+        }
+
+        let typeClass = "shop-type " + (useLowerRowShop ? "shop-type-row1" : "shop-type-row0");
+        if (isActive) typeClass += " active-shop";
+
+        let bottomPos = useLowerRowShop ? "1px" : "10px";
+        createScalePoint(pct, label, typeClass, null, bottomPos);
+
+        lastPctShop = pct;
+      }
+    });
+  }
 }
 
-function createScalePoint(leftPct, label, isOdd) {
+function createScalePoint(leftPct, label, className, topStyle, bottomStyle) {
   const div = document.createElement("div");
-  div.className = "scale-point " + (isOdd ? "odd" : "even");
+  div.className = "scale-point " + className;
   div.style.left = leftPct + "%";
   div.innerText = label;
+  if (topStyle !== null) div.style.top = topStyle;
+  if (bottomStyle !== null) div.style.bottom = bottomStyle;
   graphScale.appendChild(div);
+}
+
+function parseTextList(textData, isPCMode = false) {
+  const lines = textData.split("\n").filter(line => line.trim() !== "");
+  const tempResult = [];
+  
+  for (let line of lines) {
+    const columns = line.split(/[,,、，]/).map(c => c.trim());
+    if (columns.length < 2) continue;
+    
+    let idOrName = columns[0];
+    let secondVal = columns[1];
+    let distStr = "";
+    let finalName = "";
+
+    if (isPCMode) {
+      if (columns.length >= 3) {
+        distStr = columns[2];
+        finalName = secondVal;
+      } else {
+        distStr = secondVal;
+        finalName = idOrName;
+      }
+    } else {
+      distStr = secondVal;
+      finalName = idOrName;
+    }
+    
+    const itemDist = parseFloat(distStr.replace(/[^\d.]/g, ""));
+    
+    if (!isNaN(itemDist)) {
+      tempResult.push({ rawId: idOrName, name: finalName, dist: itemDist });
+    }
+  }
+  
+  tempResult.sort((a, b) => a.dist - b.dist);
+  let genericCounter = 0;
+
+  return tempResult.map(item => {
+    let finalId = "";
+    if (isPCMode) {
+      let cleanId = toHalfWidthAlphaNum(item.rawId);
+      if (cleanId.includes("PC")) {
+        finalId = cleanId.match(/PC\d+/)?.[0] || cleanId; 
+      } else if (cleanId.includes("GOAL") || cleanId.includes("FINISH")) {
+        finalId = "GOAL";
+      } else {
+        finalId = circleNumbers[genericCounter] || `（${genericCounter + 1}）`;
+        genericCounter++;
+      }
+    } else {
+      finalId = circleNumbers[genericCounter] || `（${genericCounter + 1}）`;
+      genericCounter++;
+    }
+    return { id: finalId, name: item.name, dist: item.dist };
+  });
 }
 
 function update(isDistanceOrInputChanged = false) {
   localStorage.setItem("startTime", startTime.value);
   localStorage.setItem("brm", brm.value);
   localStorage.setItem("distance", distance.value);
-  localStorage.setItem("pcList", pcInput.value);
+  localStorage.setItem("pcList3", pcInput.value);
+  localStorage.setItem("shopList3", shopInput.value);
 
   const now = new Date();
   const hrs = String(now.getHours()).padStart(2, '0');
@@ -761,70 +1342,49 @@ function update(isDistanceOrInputChanged = false) {
   const secs = String(now.getSeconds()).padStart(2, '0');
   document.getElementById("currentTime").innerText = hrs + ":" + mins + ":" + secs;
 
-  let startReady = false;
-  let start = null;
-  if (startTime.value) {
-    start = new Date(startTime.value);
-    if (!isNaN(start.getTime())) startReady = true;
-  }
-
   const currentDist = parseFloat(distance.value) || 0;
   const [targetDistance, limitHours] = brm.value.split(",").map(Number);
 
-  const pcLines = pcInput.value.split("\n").filter(line => line.trim() !== "");
-  globalPCList = [];
-  
-  for (let line of pcLines) {
-    const columns = line.split(/[,,、，]/).map(c => c.trim());
-    if (columns.length < 3) continue;
-    const pcDist = parseFloat(columns[2].replace(/[^\d.]/g, ""));
-    if (!isNaN(pcDist)) {
-      globalPCList.push({ id: columns[0], name: columns[1], dist: pcDist });
-    }
-  }
+  globalPCList = parseTextList(pcInput.value, true);
+  globalShopList = parseTextList(shopInput.value, false);
 
   let progressPct = (currentDist / targetDistance) * 100;
   if (progressPct < 0) progressPct = 0;
   if (progressPct > 100) progressPct = 100;
   graphBar.style.width = progressPct + "%";
 
-  renderGraphScale(targetDistance);
-
-  let detectedTrackIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
+  let detectedPcIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
   for (let i = 0; i < globalPCList.length; i++) {
-    if (globalPCList[i].dist > currentDist) {
-      detectedTrackIdx = i;
-      break;
-    }
+    if (globalPCList[i].dist > currentDist) { detectedPcIdx = i; break; }
   }
-  
-  autoTrackIdx = detectedTrackIdx;
-
-  if (isDistanceOrInputChanged || !isUserNavigating || currentDisplayIndex === -1 || currentDisplayIndex >= globalPCList.length) {
-    if (isDistanceOrInputChanged) {
-      isUserNavigating = false; 
-    }
-    currentDisplayIndex = autoTrackIdx;
+  pcAutoTrackIdx = detectedPcIdx;
+  if (isDistanceOrInputChanged || !isPcUserNavigating || pcDisplayIdx === -1 || pcDisplayIdx >= globalPCList.length) {
+    if (isDistanceOrInputChanged) { isPcUserNavigating = false; }
+    pcDisplayIdx = pcAutoTrackIdx;
   }
 
-  if (globalPCList.length > 0 && currentDisplayIndex !== -1) {
-    updateDisplayOnly();
-  } else {
-    document.getElementById("pcLabel").innerText = "NEXT: GOAL";
-    pcRemainDist.innerText = "残り 0.0 km";
-    ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
+  let detectedShopIdx = globalShopList.length > 0 ? globalShopList.length - 1 : -1;
+  for (let i = 0; i < globalShopList.length; i++) {
+    if (globalShopList[i].dist > currentDist) { detectedShopIdx = i; break; }
   }
+  shopAutoTrackIdx = detectedShopIdx;
+  if (isDistanceOrInputChanged || !isShopUserNavigating || shopDisplayIdx === -1 || shopDisplayIdx >= globalShopList.length) {
+    if (isDistanceOrInputChanged) { isShopUserNavigating = false; }
+    shopDisplayIdx = shopAutoTrackIdx;
+  }
+
+  renderGraphScale(targetDistance);
+  updateDisplayOnly();
 
   if (!startTime.value || !distance.value) return;
-
+  let start = new Date(startTime.value);
   let elapsed = (now - start) / 1000 / 3600;
   if (elapsed <= 0) return;
 
   const gross = currentDist / elapsed;
-
   const eh = Math.floor(elapsed);
   const em = Math.floor((elapsed - eh) * 60);
-  document.getElementById("elapsed").innerText = eh + "時間" + em + "分";
+  document.getElementById("elapsed").innerText = eh + "時間" + em + "分"; 
 
   const totalRemainTime = limitHours - elapsed;
   if (totalRemainTime > 0) {
@@ -836,7 +1396,6 @@ function update(isDistanceOrInputChanged = false) {
   }
   
   document.getElementById("gross").innerText = gross.toFixed(2) + " km/h";
-  
   const remainDist = targetDistance - currentDist;
   document.getElementById("remainDistance").innerText = Math.max(0, remainDist).toFixed(1) + " km";
 
@@ -855,13 +1414,8 @@ function update(isDistanceOrInputChanged = false) {
   
   let statusIcon = "🔴";
   let statusClass = "big-value red"; 
-  if (saving >= 2) {
-    statusIcon = "🟢";
-    statusClass = "big-value green";
-  } else if (saving >= 1) {
-    statusIcon = "🟡";
-    statusClass = "big-value yellow";
-  }
+  if (saving >= 2) { statusIcon = "🟢"; statusClass = "big-value green"; }
+  else if (saving >= 1) { statusIcon = "🟡"; statusClass = "big-value yellow"; }
 
   const savingElement = document.getElementById("saving");
   savingElement.innerText = statusIcon + " " + savSign + savH + "時間" + savM + "分";
@@ -869,15 +1423,16 @@ function update(isDistanceOrInputChanged = false) {
 }
 
 resetBtn.addEventListener("click", () => {
-  if (confirm("「START日時」「現在距離」「PCリスト登録」の内容をリセットしますか？（※保存したリスト一覧は削除されません）")) {
-    
+  if (confirm("すべての設定、リスト、走行データをリセットしますか？")) {
     localStorage.removeItem("startTime");
     localStorage.removeItem("distance");
-    localStorage.removeItem("pcList");
+    localStorage.removeItem("pcList3");
+    localStorage.removeItem("shopList3");
 
     startTime.value = "";
     distance.value = "";
     pcInput.value = "";
+    shopInput.value = "";
     saveName.value = "";
     tempDistanceValue = "";
     graphBar.style.width = "0%";
@@ -890,23 +1445,32 @@ resetBtn.addEventListener("click", () => {
     document.getElementById("needSpeed").innerText = "--";
     document.getElementById("saving").innerText = "--";
     document.getElementById("saving").className = "big-value"; 
-    document.getElementById("pcLabel").innerText = "NEXT: PC-";
-    pcRemainDist.innerText = "残り -- km";
     
-    ["15","16","17","18","19","20"].forEach(s => document.getElementById("sp" + s).innerText = "--:--");
-
-    savedListsSelect.value = "";
-
-    isUserNavigating = false; 
+    isPcUserNavigating = false; 
+    isShopUserNavigating = false;
     menuContent.classList.remove("open");
+    
+    loadSavedListsDropdown();
+    savedListsSelect.selectedIndex = 0;
+
+    shopToggle.checked = true;
+    localStorage.setItem("shopToggleState", "true");
+    document.body.classList.remove("shop-off");
+    shopCard.style.display = "block";
+    if(document.getElementById("shopInput")) document.getElementById("shopInput").style.display = "block";
+
+    mapDblClickToggle.checked = true;
+    localStorage.setItem("mapDblClickState", "true");
+
     update(true);
-    alert("指定された項目をリセットしました。");
+    alert("リセットが完了しました。");
   }
 });
 
 setInterval(() => update(false), 1000);
 distance.addEventListener("input", () => update(true));
 pcInput.addEventListener("input", () => update(true));
+shopInput.addEventListener("input", () => update(true));
 startTime.addEventListener("change", () => update(false));
 brm.addEventListener("change", () => update(false));
 document.addEventListener("resume", () => update(false), false);
