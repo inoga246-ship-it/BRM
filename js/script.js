@@ -32,8 +32,6 @@ const shopTitleRow = document.getElementById("shopTitleRow");
 
 const graphBar = document.getElementById("graphBar");
 const graphScale = document.getElementById("graphScale");
-// ★高低図キャンバス要素
-const elevationCanvas = document.getElementById("elevationCanvas");
 
 const saveName = document.getElementById("saveName");
 const saveBtn = document.getElementById("saveBtn");
@@ -211,7 +209,7 @@ gpxFileInput.addEventListener("change", (e) => {
       const xmlDoc = parser.parseFromString(evt.target.result, "text/xml");
       
       const trkpts = xmlDoc.getElementsByTagName("trkpt");
-      if (trkpts.length === 0) { alert("GPXファイル内にトラックデータが見つかりませんでした。"); return; }
+      if (trkpts.length === 0) { alert("GPXファイル内にトラックデータ(ルート線)が見つかりませんでした。"); return; }
       
       gpxTrackPoints = [];
       let totalDist = 0;
@@ -295,11 +293,16 @@ gpxFileInput.addEventListener("change", (e) => {
       let chkIdx = 1;
       const formattedPcLines = pcTextLines.map(item => {
         let t = item.text;
-        if (t.startsWith("PC,")) { t = t.replace("PC,", `PC${pcIdx},`); pcIdx++; }
-        else if (t.startsWith("通過チェック,")) { t = t.replace("通過チェック,", `通過チェック${circleNumbers[chkIdx-1]||chkIdx},`); chkIdx++; }
+        if (t.startsWith("PC,")) {
+          t = t.replace("PC,", `PC${pcIdx},`);
+          pcIdx++;
+        } else if (t.startsWith("通過チェック,")) {
+          t = t.replace("通過チェック,", `通過チェック${circleNumbers[chkIdx-1]||chkIdx},`);
+          chkIdx++;
+        }
         return t;
       });
-
+      
       if (formattedPcLines.length > 0) pcInput.value = formattedPcLines.join("\n");
       if (shopTextLines.length > 0) shopInput.value = shopTextLines.map(item => item.text).join("\n");
       
@@ -326,113 +329,607 @@ gpxFileInput.addEventListener("change", (e) => {
   reader.readAsText(file);
 });
 
-function getGpxGainAtDistance(dist) {
-  if (gpxTrackPoints.length === 0) return 0;
-  if (dist <= 0) return 0;
-  for (let i = 0; i < gpxTrackPoints.length; i++) {
-    if (gpxTrackPoints[i].dist >= dist) return gpxTrackPoints[i].gain;
+function getElevationAtDistance(targetD) {
+  if (!gpxTrackPoints || gpxTrackPoints.length === 0) return 0;
+  if (targetD <= 0) return gpxTrackPoints[0].ele;
+  if (targetD >= gpxTrackPoints[gpxTrackPoints.length - 1].dist) return gpxTrackPoints[gpxTrackPoints.length - 1].ele;
+  
+  let low = 0, high = gpxTrackPoints.length - 1;
+  while (low <= high) {
+    let mid = Math.floor((low + high) / 2);
+    if (gpxTrackPoints[mid].dist < targetD) low = mid + 1;
+    else high = mid - 1;
   }
-  return gpxTrackPoints[gpxTrackPoints.length - 1].gain;
+  let idx = low;
+  if (idx >= gpxTrackPoints.length) idx = gpxTrackPoints.length - 1;
+  return gpxTrackPoints[idx].ele;
 }
 
-function loadSavedListsDropdown() {
-  const savedData = localStorage.getItem("customBRMDataSets3");
-  let lists = savedData ? JSON.parse(savedData) : {};
-  savedListsSelect.innerHTML = "";
-  const keys = Object.keys(lists);
-  if (keys.length === 0) {
-    const opt = document.createElement("option"); opt.value = ""; opt.innerText = "-- 保存データがありません --"; savedListsSelect.appendChild(opt); return;
+function getAccumGainAtDistance(targetD) {
+  if (!gpxTrackPoints || gpxTrackPoints.length === 0) return 0;
+  if (targetD <= 0) return 0;
+  if (targetD >= gpxTrackPoints[gpxTrackPoints.length - 1].dist) return gpxTrackPoints[gpxTrackPoints.length - 1].gain;
+  
+  let low = 0, high = gpxTrackPoints.length - 1;
+  while (low <= high) {
+    let mid = Math.floor((low + high) / 2);
+    if (gpxTrackPoints[mid].dist < targetD) low = mid + 1;
+    else high = mid - 1;
   }
-  const defaultOpt = document.createElement("option"); defaultOpt.value = ""; defaultOpt.innerText = "-- リストを選択して呼び出し --"; savedListsSelect.appendChild(defaultOpt);
-  keys.forEach(key => { const opt = document.createElement("option"); opt.value = key; opt.innerText = key; savedListsSelect.appendChild(opt); });
+  let idx = low;
+  if (idx >= gpxTrackPoints.length) idx = gpxTrackPoints.length - 1;
+  return gpxTrackPoints[idx].gain;
+}
+
+// 背面のCanvas要素にオレンジ色の簡易高低図を自動描画する新機能
+function drawElevationOnCanvas(currentDist, targetDistance) {
+  const canvas = document.getElementById("elevationCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  
+  // 親要素のリアルタイムな表示幅に合わせてキャンバスピクセルサイズを最適化
+  const rect = canvas.parentNode.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  if (!gpxTrackPoints || gpxTrackPoints.length === 0) return;
+  
+  // 全データ中の最高・最低高度を算出して縦軸スケールを調整
+  let minEle = Infinity;
+  let maxEle = -Infinity;
+  gpxTrackPoints.forEach(p => {
+    if (p.ele < minEle) minEle = p.ele;
+    if (p.ele > maxEle) maxEle = p.ele;
+  });
+  if (maxEle === minEle) maxEle += 100;
+  const eleRange = maxEle - minEle;
+  
+  // 現在の走行進捗率の計算
+  const currentProgressRatio = Math.min(1, Math.max(0, currentDist / targetDistance));
+  const currentX = canvas.width * currentProgressRatio;
+  
+  // 1. 未走破区間の高低図（薄いグレーオレンジ）
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height);
+  gpxTrackPoints.forEach(p => {
+    const x = (p.dist / targetDistance) * canvas.width;
+    const y = canvas.height - ((p.ele - minEle) / eleRange) * (canvas.height - 8) - 2;
+    ctx.lineTo(x, y);
+  });
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(249, 115, 22, 0.08)";
+  ctx.fill();
+  
+  // 2. 走破済み区間の高低図（鮮やかなサイバーオレンジでの塗りつぶし）
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, currentX, canvas.height);
+  ctx.clip();
+  
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height);
+  gpxTrackPoints.forEach(p => {
+    const x = (p.dist / targetDistance) * canvas.width;
+    const y = canvas.height - ((p.ele - minEle) / eleRange) * (canvas.height - 8) - 2;
+    ctx.lineTo(x, y);
+  });
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(249, 115, 22, 0.35)";
+  ctx.fill();
+  ctx.restore();
+  
+  // 3. 高低図のアウトライン最上部（シャープなオレンジの境界線）
+  ctx.beginPath();
+  gpxTrackPoints.forEach((p, idx) => {
+    const x = (p.dist / targetDistance) * canvas.width;
+    const y = canvas.height - ((p.ele - minEle) / eleRange) * (canvas.height - 8) - 2;
+    if (idx === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = "rgba(249, 115, 22, 0.6)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function parsePCList() {
+  const lines = pcInput.value.split("\n");
+  const list = [];
+  lines.forEach(line => {
+    let parts = line.split(/[,，、]/);
+    if (parts.length >= 2) {
+      let idStr = parts[0].trim();
+      let nameStr = parts[1].trim();
+      let distStr = parts[2] ? parts[2].trim() : "";
+      
+      if (!distStr && nameStr) {
+        let match = nameStr.match(/([\d.]+)\s*(km|KM)?$/);
+        if (match) {
+          distStr = match[1];
+          nameStr = nameStr.replace(/([\d.]+)\s*(km|KM)?$/, "").trim();
+        }
+      }
+      let d = parseFloat(distStr);
+      if (!isNaN(d)) {
+        list.push({ id: idStr, name: nameStr, dist: d });
+      }
+    }
+  });
+  list.sort((a, b) => a.dist - b.dist);
+  return list;
+}
+
+function parseShopList() {
+  const lines = shopInput.value.split("\n");
+  const list = [];
+  lines.forEach(line => {
+    let parts = line.split(/[,，、]/);
+    if (parts.length >= 2) {
+      let nameStr = parts[0].trim();
+      let distStr = parts[1].trim();
+      let d = parseFloat(distStr);
+      if (!isNaN(d)) {
+        list.push({ name: nameStr, dist: d });
+      }
+    } else if (parts.length === 1 && parts[0].trim()) {
+      let lineStr = parts[0].trim();
+      let match = lineStr.match(/^(.*?)([\d.]+)$/);
+      if (match) {
+        let nameStr = match[1].replace(/[,，、\s]+$/, "").trim();
+        let d = parseFloat(match[2]);
+        if (!isNaN(d) && nameStr) {
+          list.push({ name: nameStr, dist: d });
+        }
+      }
+    }
+  });
+  list.sort((a, b) => a.dist - b.dist);
+  return list;
+}
+
+function persistInputs() {
+  localStorage.setItem("startTime", startTime.value);
+  localStorage.setItem("brm", brm.value);
+  localStorage.setItem("distance", distance.value);
+  localStorage.setItem("pcList3", pcInput.value);
+  localStorage.setItem("shopList3", shopInput.value);
+}
+
+pcPrevBtn.addEventListener("click", () => {
+  if (globalPCList.length === 0) return;
+  isPcUserNavigating = true;
+  pcDisplayIdx--;
+  if (pcDisplayIdx < 0) pcDisplayIdx = 0;
+  update(true);
+});
+pcNextBtn.addEventListener("click", () => {
+  if (globalPCList.length === 0) return;
+  isPcUserNavigating = true;
+  pcDisplayIdx++;
+  if (pcDisplayIdx >= globalPCList.length) pcDisplayIdx = globalPCList.length - 1;
+  update(true);
+});
+
+shopPrevBtn.addEventListener("click", () => {
+  if (globalShopList.length === 0) return;
+  isShopUserNavigating = true;
+  shopDisplayIdx--;
+  if (shopDisplayIdx < 0) shopDisplayIdx = 0;
+  update(true);
+});
+shopNextBtn.addEventListener("click", () => {
+  if (globalShopList.length === 0) return;
+  isShopUserNavigating = true;
+  shopDisplayIdx++;
+  if (shopDisplayIdx >= globalShopList.length) shopDisplayIdx = globalShopList.length - 1;
+  update(true);
+});
+
+function renderGraphScale(targetDistance) {
+  const existingMarks = graphScale.querySelectorAll(".scale-mark, .scale-label");
+  existingMarks.forEach(el => el.remove());
+  
+  let step = 50;
+  if (targetDistance <= 200) step = 50;
+  else if (targetDistance <= 400) step = 100;
+  else step = 100;
+  
+  for (let d = step; d < targetDistance; d += step) {
+    let pct = (d / targetDistance) * 100;
+    
+    let mark = document.createElement("div");
+    mark.className = "scale-mark";
+    mark.style.left = pct + "%";
+    graphScale.appendChild(mark);
+    
+    let label = document.createElement("div");
+    label.className = "scale-label";
+    label.style.left = pct + "%";
+    label.innerText = d;
+    graphScale.appendChild(label);
+  }
+}
+
+function updateDisplayOnly() {
+  update(true);
+}
+
+function update(forceListReparse = false) {
+  if (forceListReparse || lastPcInputText !== pcInput.value) {
+    globalPCList = parsePCList();
+    lastPcInputText = pcInput.value;
+  }
+  if (forceListReparse || lastShopInputText !== shopInput.value) {
+    globalShopList = parseShopList();
+    lastShopInputText = shopInput.value;
+  }
+  
+  const curD = parseFloat(distance.value) || 0;
+  const brmVal = brm.value || "200,13.5";
+  const [targetDistance, limitHours] = brmVal.split(",").map(Number);
+  
+  let progressPct = (curD / targetDistance) * 100;
+  if (progressPct < 0) progressPct = 0;
+  if (progressPct > 100) progressPct = 100;
+  graphBar.style.width = progressPct + "%";
+  
+  // 高低図をリアルタイム自動再描画
+  drawElevationOnCanvas(curD, targetDistance);
+  
+  let autoPcIdx = globalPCList.findIndex(item => item.dist > curD);
+  if (autoPcIdx === -1 && globalPCList.length > 0) {
+    autoPcIdx = globalPCList.length - 1;
+  }
+  pcAutoTrackIdx = autoPcIdx;
+  if (!isPcUserNavigating) {
+    pcDisplayIdx = autoPcIdx;
+  }
+  
+  let autoShopIdx = globalShopList.findIndex(item => item.dist > curD);
+  if (autoShopIdx === -1 && globalShopList.length > 0) {
+    autoShopIdx = globalShopList.length - 1;
+  }
+  shopAutoTrackIdx = autoShopIdx;
+  if (!isShopUserNavigating) {
+    shopDisplayIdx = autoShopIdx;
+  }
+  
+  // --- ① PCカードの更新 ---
+  if (globalPCList.length === 0) {
+    pcRemainDist.innerHTML = `残り -- km<span class="ele-small">獲得標高 --m</span>`;
+    document.getElementById("pcLabel").innerText = "次: PC枠の登録なし";
+    ["15","16","17","18","19","20"].forEach(s => document.getElementById("pc_sp" + s).innerText = "--:--");
+  } else if (pcDisplayIdx !== -1) {
+    const item = globalPCList[pcDisplayIdx];
+    const diff = item.dist - curD;
+    
+    let signStr = isPcUserNavigating ? "◀ " : "次: ";
+    if (diff < 0) {
+      pcRemainDist.innerHTML = `通過済 ${Math.abs(diff).toFixed(1)} km`;
+      document.getElementById("pcLabel").innerText = `${item.id} ${item.name} (${item.dist.toFixed(1)}km)`;
+    } else {
+      // 改良完了：獲得標高から「（ ）」の括弧を除去して直にすっきり結合
+      if (gpxTrackPoints && gpxTrackPoints.length > 0) {
+        const gainAtPoint = getAccumGainAtDistance(item.dist);
+        pcRemainDist.innerHTML = `残り ${diff.toFixed(1)} km<span class="ele-small">獲得標高 ${Math.round(gainAtPoint)}m</span>`;
+      } else {
+        pcRemainDist.innerHTML = `残り ${diff.toFixed(1)} km<span class="ele-small">獲得標高 --m</span>`;
+      }
+      document.getElementById("pcLabel").innerText = `${signStr}${item.id} ${item.name} (${item.dist.toFixed(1)}km)`;
+    }
+    
+    if (startTime.value) {
+      const sTime = new Date(startTime.value);
+      ["15","16","17","18","19","20"].forEach(s => {
+        const speed = parseInt(s);
+        const hoursNeeded = item.dist / speed;
+        const targetTime = new Date(sTime.getTime() + hoursNeeded * 60 * 60 * 1000);
+        document.getElementById("pc_sp" + s).innerText = 
+          String(targetTime.getHours()).padStart(2, '0') + ":" + String(targetTime.getMinutes()).padStart(2, '0');
+      });
+    } else {
+      ["15","16","17","18","19","20"].forEach(s => document.getElementById("pc_sp" + s).innerText = "--:--");
+    }
+  }
+  
+  // --- ② 休憩・コンビニカードの更新 ---
+  if (!shopToggle.checked) {
+    // 非表示なら処理スキップ
+  } else if (globalShopList.length === 0) {
+    shopRemainDist.innerHTML = `残り -- km<span class="ele-small">獲得標高 --m</span>`;
+    document.getElementById("shopLabel").innerText = "次休憩: 登録なし";
+  } else if (shopDisplayIdx !== -1) {
+    const item = globalShopList[shopDisplayIdx];
+    const diff = item.dist - curD;
+    
+    let signStr = isShopUserNavigating ? "◀ " : "次休憩: ";
+    if (diff < 0) {
+      shopRemainDist.innerHTML = `通過済 ${Math.abs(diff).toFixed(1)} km`;
+      document.getElementById("shopLabel").innerText = `${item.name} (${item.dist.toFixed(1)}km)`;
+    } else {
+      // 改良完了：獲得標高から「（ ）」の括弧を除去して直にすっきり結合
+      if (gpxTrackPoints && gpxTrackPoints.length > 0) {
+        const gainAtPoint = getAccumGainAtDistance(item.dist);
+        shopRemainDist.innerHTML = `残り ${diff.toFixed(1)} km<span class="ele-small">獲得標高 ${Math.round(gainAtPoint)}m</span>`;
+      } else {
+        shopRemainDist.innerHTML = `残り ${diff.toFixed(1)} km<span class="ele-small">獲得標高 --m</span>`;
+      }
+      document.getElementById("shopLabel").innerText = `${signStr}${item.name} (${item.dist.toFixed(1)}km)`;
+    }
+  }
+  
+  // --- 各種下部共通数値ステータスの計算 ---
+  const now = new Date();
+  document.getElementById("currentTime").innerText = 
+    String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
+    
+  if (!startTime.value) {
+    ["elapsed", "remainTime", "gross", "remainDistance", "finish", "needSpeed", "saving"].forEach(id => {
+      if(id !== "remainDistance") document.getElementById(id).innerText = "--";
+    });
+    document.getElementById("remainDistance").innerText = (targetDistance - curD).toFixed(1) + " km";
+    document.getElementById("saving").className = "big-value";
+    return;
+  }
+  
+  const sTime = new Date(startTime.value);
+  const limitTime = new Date(sTime.getTime() + limitHours * 60 * 60 * 1000);
+  
+  const elapsedMs = now.getTime() - sTime.getTime();
+  const elapsedHours = elapsedMs / (1000 * 60 * 60);
+  
+  if (elapsedHours < 0) {
+    document.getElementById("elapsed").innerText = "未スタート";
+    document.getElementById("remainTime").innerText = limitHours.toFixed(1) + "h";
+    document.getElementById("gross").innerText = "0.0 km/h";
+    document.getElementById("remainDistance").innerText = (targetDistance - curD).toFixed(1) + " km";
+    document.getElementById("finish").innerText = "--:--";
+    document.getElementById("needSpeed").innerText = (targetDistance / limitHours).toFixed(1) + " km/h";
+    document.getElementById("saving").innerText = "00:00";
+    document.getElementById("saving").className = "big-value green";
+    return;
+  }
+  
+  // 経過時間
+  const elapH = Math.floor(elapsedHours);
+  const elapM = Math.floor((elapsedHours - elapH) * 60);
+  document.getElementById("elapsed").innerText = String(elapH).padStart(2, '0') + ":" + String(elapM).padStart(2, '0');
+  
+  // 残り時間
+  const remainMs = limitTime.getTime() - now.getTime();
+  const remainHours = remainMs / (1000 * 60 * 60);
+  if (remainHours < 0) {
+    document.getElementById("remainTime").innerText = "タイムアウト";
+  } else {
+    const remH = Math.floor(remainHours);
+    const remM = Math.floor((remainHours - remH) * 60);
+    document.getElementById("remainTime").innerText = String(remH).padStart(2, '0') + ":" + String(remM).padStart(2, '0');
+  }
+  
+  // グロス速度
+  const grossSpeed = elapsedHours > 0 ? (curD / elapsedHours) : 0;
+  document.getElementById("gross").innerText = grossSpeed.toFixed(1) + " km/h";
+  
+  // 残り距離
+  const remDist = targetDistance - curD;
+  document.getElementById("remainDistance").innerText = (remDist < 0 ? 0 : remDist).toFixed(1) + " km";
+  
+  // 完走予想時刻
+  if (curD > 0.1 && grossSpeed > 2) {
+    const totalEstHours = targetDistance / grossSpeed;
+    const finishTime = new Date(sTime.getTime() + totalEstHours * 60 * 60 * 1000);
+    document.getElementById("finish").innerText = 
+      String(finishTime.getHours()).padStart(2, '0') + ":" + String(finishTime.getMinutes()).padStart(2, '0');
+  } else {
+    document.getElementById("finish").innerText = "--:--";
+  }
+  
+  // 必要平均速度
+  if (remDist <= 0) {
+    document.getElementById("needSpeed").innerText = "ゴール済";
+  } else if (remainHours <= 0) {
+    document.getElementById("needSpeed").innerText = "制限超過";
+  } else {
+    const needS = remDist / remainHours;
+    document.getElementById("needSpeed").innerText = needS.toFixed(1) + " km/h";
+  }
+  
+  // 貯金時間計算 (現在距離に対する法定時間との差分)
+  const legalSpeed = targetDistance / limitHours; 
+  const legalHoursForCurD = curD / legalSpeed;
+  const savingHours = legalHoursForCurD - elapsedHours;
+  
+  const isMinus = savingHours < 0;
+  const absSaving = Math.abs(savingHours);
+  const savH = Math.floor(absSaving);
+  const savM = Math.floor((absSaving - savH) * 60);
+  
+  let savingStr = (isMinus ? "-" : "") + String(savH).padStart(2, '0') + ":" + String(savM).padStart(2, '0');
+  document.getElementById("saving").innerText = savingStr;
+  
+  // 貯金時間のネオンカラー分岐
+  const svElement = document.getElementById("saving");
+  if (isMinus) {
+    svElement.className = "big-value red";
+  } else {
+    if (savingHours >= 2.0) {
+      svElement.className = "big-value green";
+    } else if (savingHours >= 1.0) {
+      svElement.className = "big-value yellow";
+    } else {
+      svElement.className = "big-value red";
+    }
+  }
+}
+
+// データのローカル保存管理ロジック一式
+function loadSavedListsDropdown() {
+  let listNames = [];
+  try {
+    const stored = localStorage.getItem("brm_saved_list_names");
+    if (stored) listNames = JSON.parse(stored);
+  } catch(e) { listNames = []; }
+  
+  savedListsSelect.innerHTML = "";
+  if (listNames.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.innerText = "-- 保存データがありません --";
+    savedListsSelect.appendChild(opt);
+  } else {
+    const defOpt = document.createElement("option");
+    defOpt.value = "";
+    defOpt.innerText = "-- 選択してください --";
+    savedListsSelect.appendChild(defOpt);
+    
+    listNames.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.innerText = name;
+      savedListsSelect.appendChild(opt);
+    });
+  }
 }
 
 saveBtn.addEventListener("click", () => {
-  const name = saveName.value.trim(); if (!name) { alert("保存する名前を入力してください。"); return; }
-  const savedData = localStorage.getItem("customBRMDataSets3"); let lists = savedData ? JSON.parse(savedData) : {};
-  if (lists[name] && !confirm("「" + name + "」は既に保存されています。上書きしますか？")) { return; }
-  lists[name] = { pc: pcInput.value.trim(), shop: shopInput.value.trim() };
-  localStorage.setItem("customBRMDataSets3", JSON.stringify(lists));
-  saveName.value = ""; loadSavedListsDropdown(); alert("セット「" + name + "」を保存しました。");
+  const name = saveName.value.trim();
+  if (!name) { alert("保存名を入力してください。"); return; }
+  
+  let listNames = [];
+  try {
+    const stored = localStorage.getItem("brm_saved_list_names");
+    if (stored) listNames = JSON.parse(stored);
+  } catch(e) {}
+  
+  if (!listNames.includes(name)) {
+    listNames.push(name);
+    localStorage.setItem("brm_saved_list_names", JSON.stringify(listNames));
+  }
+  
+  const payload = {
+    brm: brm.value,
+    startTime: startTime.value,
+    distance: distance.value,
+    pcInput: pcInput.value,
+    shopInput: shopInput.value,
+    gpxTrackPoints: gpxTrackPoints 
+  };
+  localStorage.setItem("brm_saved_data_" + name, JSON.stringify(payload));
+  
+  saveName.value = "";
+  loadSavedListsDropdown();
+  alert(`「${name}」として現在の設定・GPXをローカルに保存しました。`);
 });
 
 savedListsSelect.addEventListener("change", () => {
-  const selectedName = savedListsSelect.value; if (!selectedName) return;
-  const savedData = localStorage.getItem("customBRMDataSets3"); let lists = savedData ? JSON.parse(savedData) : {};
-  if (lists[selectedName]) {
-    const data = lists[selectedName]; pcInput.value = data.pc || ""; shopInput.value = data.shop || "";
-    isPcUserNavigating = false; isShopUserNavigating = false; persistInputs(); update(true); alert("「" + selectedName + "」のデータを読み込みました。");
+  const name = savedListsSelect.value;
+  if (!name) return;
+  
+  const stored = localStorage.getItem("brm_saved_data_" + name);
+  if (!stored) return;
+  
+  try {
+    const payload = JSON.parse(stored);
+    brm.value = payload.brm || "200,13.5";
+    startTime.value = payload.startTime || "";
+    distance.value = payload.distance || "";
+    pcInput.value = payload.pcInput || "";
+    shopInput.value = payload.shopInput || "";
+    
+    if (payload.gpxTrackPoints) {
+      gpxTrackPoints = payload.gpxTrackPoints;
+      localStorage.setItem("gpxTrackPoints", JSON.stringify(gpxTrackPoints));
+    } else {
+      gpxTrackPoints = [];
+      localStorage.removeItem("gpxTrackPoints");
+    }
+    
+    isPcUserNavigating = false;
+    isShopUserNavigating = false;
+    
+    persistInputs();
+    const [targetDistance] = brm.value.split(",").map(Number);
+    renderGraphScale(targetDistance);
+    update(true);
+    alert(`「${name}」のデータを呼び出しました。`);
+  } catch(e) {
+    alert("データの読み込みに失敗しました。");
   }
+  savedListsSelect.value = "";
 });
 
 deleteBtn.addEventListener("click", () => {
-  const selectedName = savedListsSelect.value; if (!selectedName) { alert("削除したいリストを選択してください。"); return; }
-  if (confirm("リスト「" + selectedName + "」を削除してもよろしいですか？")) {
-    const savedData = localStorage.getItem("customBRMDataSets3"); let lists = savedData ? JSON.parse(savedData) : {};
-    delete lists[selectedName]; localStorage.setItem("customBRMDataSets3", JSON.stringify(lists));
-    loadSavedListsDropdown(); alert("削除しました。");
-  }
+  const name = savedListsSelect.value;
+  if (!name) { alert("削除したいリストを選択肢から選んでください。"); return; }
+  if (!confirm(`本当に「${name}」の保存データを削除しますか？`)) return;
+  
+  let listNames = [];
+  try {
+    const stored = localStorage.getItem("brm_saved_list_names");
+    if (stored) listNames = JSON.parse(stored);
+  } catch(e) {}
+  
+  listNames = listNames.filter(n => n !== name);
+  localStorage.setItem("brm_saved_list_names", JSON.stringify(listNames));
+  localStorage.removeItem("brm_saved_data_" + name);
+  
+  loadSavedListsDropdown();
+  alert("データを削除しました。");
 });
-
-const BACKUP_KEYS = ["startTime", "brm", "distance", "pcList3", "shopList3", "customBRMDataSets3", "shopToggleState", "mapDblClickState", "convenienceBtnState", "gpxTrackPoints"];
 
 exportBtn.addEventListener("click", () => {
-  const backupData = {};
-  BACKUP_KEYS.forEach(key => { const v = localStorage.getItem(key); if (v !== null) backupData[key] = v; });
-  const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+  let listNames = [];
+  try {
+    const stored = localStorage.getItem("brm_saved_list_names");
+    if (stored) listNames = JSON.parse(stored);
+  } catch(e) {}
+  
+  const allData = { brm_saved_list_names: listNames, items: {} };
+  listNames.forEach(name => {
+    const raw = localStorage.getItem("brm_saved_data_" + name);
+    if (raw) allData.items[name] = JSON.parse(raw);
+  });
+  
+  const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  const now = new Date();
-  const stamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + "_" + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
-  a.href = url; a.download = "brm_pace_manager_backup_" + stamp + ".json";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  a.href = url;
+  a.download = `brm_pace_manager_backup_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  alert("バックアップファイルを書き出しました。");
 });
 
-importBtn.addEventListener("click", () => { importFileInput.click(); });
-
+importBtn.addEventListener("click", () => importFileInput.click());
 importFileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0]; if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = (evt) => {
     try {
-      const parsed = JSON.parse(ev.target.result);
-      const validKeys = Object.keys(parsed).filter(k => BACKUP_KEYS.includes(k));
-      if (validKeys.length === 0) { alert("このファイルには有効なバックアップデータが見つかりませんでした。"); return; }
-      if (!confirm("現在の設定・リストをすべて上書きして読み込みます。よろしいですか？")) return;
-      validKeys.forEach(key => { localStorage.setItem(key, parsed[key]); });
-
-      startTime.value = localStorage.getItem("startTime") || "";
-      brm.value = localStorage.getItem("brm") || "200,13.5";
-      distance.value = localStorage.getItem("distance") || "";
-      pcInput.value = localStorage.getItem("pcList3") || "";
-      shopInput.value = localStorage.getItem("shopList3") || "";
-
+      const data = JSON.parse(evt.target.result);
+      if (!data.brm_saved_list_names || !data.items) { alert("有効なバックアップファイルではありません。"); return; }
+      
+      let listNames = [];
       try {
-        const cachedGpx = localStorage.getItem("gpxTrackPoints");
-        gpxTrackPoints = cachedGpx ? JSON.parse(cachedGpx) : [];
-      } catch(e) { gpxTrackPoints = []; }
-
-      const toggleState = localStorage.getItem("shopToggleState");
-      shopToggle.checked = toggleState !== "false";
-      document.body.classList.toggle("shop-off", !shopToggle.checked);
-      shopCard.style.display = shopToggle.checked ? "block" : "none";
-
-      const dblClickState = localStorage.getItem("mapDblClickState");
-      mapDblClickToggle.checked = dblClickState !== "false";
-
-      const convState = localStorage.getItem("convenienceBtnState");
-      convenienceBtnToggle.checked = convState !== "false";
-      convenienceBtnWrapper.style.display = convenienceBtnToggle.checked ? "block" : "none";
-      topRowGrid.classList.toggle("convenience-off", !convenienceBtnToggle.checked);
-
-      isPcUserNavigating = false; isShopUserNavigating = false;
+        const stored = localStorage.getItem("brm_saved_list_names");
+        if (stored) listNames = JSON.parse(stored);
+      } catch(e) {}
+      
+      data.brm_saved_list_names.forEach(name => {
+        if (!listNames.includes(name)) listNames.push(name);
+        localStorage.setItem("brm_saved_data_" + name, JSON.stringify(data.items[name]));
+      });
+      
+      localStorage.setItem("brm_saved_list_names", JSON.stringify(listNames));
       loadSavedListsDropdown();
-      update(true);
-      alert("バックアップを読み込みました。");
-    } catch (err) {
-      alert("ファイルの読み込みに失敗しました。");
+      alert("バックアップデータのインポートが完了しました！");
+    } catch(err) {
+      alert("ファイルのインポート中にエラーが発生しました。");
     } finally {
       importFileInput.value = "";
     }
@@ -440,247 +937,36 @@ importFileInput.addEventListener("change", (e) => {
   reader.readAsText(file);
 });
 
-pcPrevBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx > 0) { isPcUserNavigating = true; pcDisplayIdx--; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-pcNextBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx < globalPCList.length - 1) { isPcUserNavigating = true; pcDisplayIdx++; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-shopPrevBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx > 0) { isShopUserNavigating = true; shopDisplayIdx--; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-shopNextBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx < globalShopList.length - 1) { isShopUserNavigating = true; shopDisplayIdx++; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-
-function formatArrivalDate(targetDate, startStr) {
-  if (!startStr) return "--:--"; const start = new Date(startStr); const hrs = String(targetDate.getHours()).padStart(2, '0'); const mins = String(targetDate.getMinutes()).padStart(2, '0');
-  if (targetDate.getDate() !== start.getDate() || targetDate.getMonth() !== start.getMonth()) { return ["日", "月", "火", "水", "木", "金", "土"][targetDate.getDay()] + ")" + hrs + ":" + mins; }
-  return hrs + ":" + mins;
-}
-
-// 表示HTML構築処理 (括弧の完全削除完了)
-function updateDisplayOnly() {
-  const currentDist = parseFloat(distance.value) || 0;
-  let startReady = false; let start = null; if (startTime.value) { start = new Date(startTime.value); if (!isNaN(start.getTime())) startReady = true; }
-
-  const currentGain = getGpxGainAtDistance(currentDist);
-
-  if (globalPCList.length > 0 && pcDisplayIdx !== -1) {
-    const selectedPC = globalPCList[pcDisplayIdx]; const diffDist = selectedPC.dist - currentDist;
-    let prefix = (pcDisplayIdx === pcAutoTrackIdx) ? "次: " : (pcDisplayIdx < pcAutoTrackIdx ? "通過: " : "先々: ");
-    document.getElementById("pcLabel").innerText = prefix + selectedPC.id + " " + selectedPC.name + "（" + selectedPC.dist.toFixed(1) + "km）";
-    
-    let gainStr = "--m";
-    if (gpxTrackPoints.length > 0) {
-      const pcGain = getGpxGainAtDistance(selectedPC.dist);
-      const remGain = Math.max(0, Math.round(pcGain - currentGain));
-      gainStr = remGain + "m";
-    }
-    // 【改良完了】（獲得標高 ○○m）の「（）」を削除
-    pcRemainDist.innerHTML = diffDist >= 0 
-      ? `残り ${diffDist.toFixed(1)} km<span class="ele-small">獲得標高 ${gainStr}</span>` 
-      : `通過後 ${Math.abs(diffDist).toFixed(1)} km<span class="ele-small">獲得標高 --m</span>`;
-    
-    [15, 16, 17, 18, 19, 20].forEach(speed => {
-      const el = document.getElementById("pc_sp" + speed);
-      if (startReady) { el.innerText = formatArrivalDate(new Date(start.getTime() + (selectedPC.dist / speed) * 3600000), startTime.value); } else { el.innerText = "--:--"; }
-    });
-  } else {
-    document.getElementById("pcLabel").innerText = "次: ゴール"; pcRemainDist.innerHTML = '残り 0.0 km<span class="ele-small">獲得標高 --m</span>'; ["15","16","17","18","19","20"].forEach(s => document.getElementById("pc_sp" + s).innerText = "--:--");
-  }
-
-  if (shopToggle.checked && globalShopList.length > 0 && shopDisplayIdx !== -1) {
-    const selectedShop = globalShopList[shopDisplayIdx]; const diffDist = selectedShop.dist - currentDist;
-    let prefix = (shopDisplayIdx === shopAutoTrackIdx) ? "次休憩: " : (shopDisplayIdx < shopAutoTrackIdx ? "通過休憩: " : "先々休憩: ");
-    document.getElementById("shopLabel").innerText = prefix + selectedShop.id + " " + selectedShop.name + "（" + selectedShop.dist.toFixed(1) + "km）";
-    
-    let gainStr = "--m";
-    if (gpxTrackPoints.length > 0) {
-      const shopGain = getGpxGainAtDistance(selectedShop.dist);
-      const remGain = Math.max(0, Math.round(shopGain - currentGain));
-      gainStr = remGain + "m";
-    }
-    // 【改良完了】（獲得標高 ○○m）の「（）」を削除
-    shopRemainDist.innerHTML = diffDist >= 0 
-      ? `残り ${diffDist.toFixed(1)} km<span class="ele-small">獲得標高 ${gainStr}</span>` 
-      : `通過後 ${Math.abs(diffDist).toFixed(1)} km<span class="ele-small">獲得標高 --m</span>`;
-  } else {
-    document.getElementById("shopLabel").innerText = "次休憩: 登録なし"; shopRemainDist.innerHTML = '残り -- km<span class="ele-small">獲得標高 --m</span>';
-  }
-}
-
-// ★簡易プロフィール高低図描画コアシステム
-function drawElevationProfile(targetDistance) {
-  if (!elevationCanvas) return;
-  const ctx = elevationCanvas.getContext("2d");
-  
-  // 親スケール要素に100%連動フィッティング
-  const rect = graphScale.getBoundingClientRect();
-  elevationCanvas.width = rect.width;
-  elevationCanvas.height = rect.height;
-  
-  ctx.clearRect(0, 0, elevationCanvas.width, elevationCanvas.height);
-  
-  if (gpxTrackPoints.length === 0 || !targetDistance || targetDistance <= 0) return;
-  
-  // 最大・最小標高（生データ）を自動スキャン
-  let minEle = Infinity;
-  let maxEle = -Infinity;
-  gpxTrackPoints.forEach(pt => {
-    if (pt.ele < minEle) minEle = pt.ele;
-    if (pt.ele > maxEle) maxEle = pt.ele;
-  });
-  
-  if (maxEle === minEle) { maxEle += 100; minEle -= 10; }
-  const eleRange = maxEle - minEle;
-  
-  ctx.beginPath();
-  ctx.moveTo(0, elevationCanvas.height); // 左下スタート
-  
-  gpxTrackPoints.forEach((pt, i) => {
-    // 200kmなどの全区間がCanvasの0〜100%幅になるようマッピング
-    const x = (pt.dist / targetDistance) * elevationCanvas.width;
-    
-    // スケール内の上下に15%ずつの見やすさマージンを確保
-    const padding = elevationCanvas.height * 0.15;
-    const availableHeight = elevationCanvas.height - (padding * 2);
-    const y = elevationCanvas.height - padding - ((pt.ele - minEle) / eleRange) * availableHeight;
-    
-    if (i === 0) {
-      ctx.lineTo(0, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  });
-  
-  ctx.lineTo(elevationCanvas.width, elevationCanvas.height);
-  ctx.closePath();
-  
-  // オレンジ系サイバーグラデーション塗りつぶし
-  const gradient = ctx.createLinearGradient(0, 0, 0, elevationCanvas.height);
-  gradient.addColorStop(0, "rgba(247, 131, 26, 0.35)");  // トップ：鮮やかなオレンジ
-  gradient.addColorStop(0.6, "rgba(214, 90, 12, 0.1)");  // 中間
-  gradient.addColorStop(1, "rgba(8, 9, 12, 0.0)");        // ボトム
-  
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  
-  // 勾配プロフィールの境界線（シャープなオレンジネオン）
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = "rgba(247, 143, 30, 0.8)";
-  ctx.stroke();
-}
-
-function renderGraphScale(targetDistance) {
-  if (!targetDistance || targetDistance <= 0) return;
-  const items = graphScale.querySelectorAll(".scale-point"); items.forEach(el => el.remove());
-  createScalePoint(0, "START", "neutral-type", "10px", null); createScalePoint(100, "GOAL", "neutral-type", "10px", null);
-  let lastPctPC = -999; let useUpperRowPC = false;
-  globalPCList.forEach((p, idx) => {
-    if (p.dist < targetDistance) {
-      const pct = (p.dist / targetDistance) * 100; let label = String(p.id).split(/[\s,，、]/)[0]; if (label.length > 6) { label = label.substring(0, 4); }
-      if (pct - lastPctPC < 4.5) { useUpperRowPC = !useUpperRowPC; } else { useUpperRowPC = false; }
-      let typeClass = "pc-type " + (useUpperRowPC ? "pc-type-row1" : "pc-type-row0"); if (idx === pcDisplayIdx) typeClass += " active-pc";
-      createScalePoint(pct, label, typeClass, useUpperRowPC ? "1px" : "10px", null); lastPctPC = pct;
-    }
-  });
-  if (shopToggle.checked) {
-    let lastPctShop = -999; let useLowerRowShop = false;
-    globalShopList.forEach((s, idx) => {
-      if (s.dist < targetDistance) {
-        const pct = (s.dist / targetDistance) * 100; let label = String(s.id).split(/[\s,，、]/)[0]; if (label.length > 6) { label = label.substring(0, 4); }
-        if (pct - lastPctShop < 4.5) { useLowerRowShop = !useLowerRowShop; } else { useLowerRowShop = false; }
-        let typeClass = "shop-type " + (useLowerRowShop ? "shop-type-row1" : "shop-type-row0"); if (idx === shopDisplayIdx) typeClass += " active-shop";
-        createScalePoint(pct, label, typeClass, null, useLowerRowShop ? "1px" : "10px"); lastPctShop = pct;
-      }
-    });
-  }
-  
-  // ★スケールとマーカー生成の直後に標高プロフィールを描画
-  drawElevationProfile(targetDistance);
-}
-
-function createScalePoint(leftPct, label, className, topStyle, bottomStyle) {
-  const div = document.createElement("div"); div.className = "scale-point " + className; div.style.left = leftPct + "%"; div.innerText = label;
-  if (topStyle !== null) div.style.top = topStyle; if (bottomStyle !== null) div.style.bottom = bottomStyle; graphScale.appendChild(div);
-}
-
-function parseTextList(textData, isPCMode = false) {
-  if (!textData) return [];
-  const lines = textData.split("\n").filter(line => line.trim() !== ""); const tempResult = [];
-  for (let line of lines) {
-    const columns = line.split(/[,,、，]/).map(c => c.trim()); if (columns.length < 2) continue;
-    let idOrName = columns[0]; let secondVal = columns[1]; let distStr = ""; let finalName = "";
-    if (isPCMode) { if (columns.length >= 3) { distStr = columns[2]; finalName = secondVal; } else { distStr = secondVal; finalName = idOrName; } } else { distStr = secondVal; finalName = idOrName; }
-    const itemDist = parseFloat(distStr.replace(/[^\d.]/g, "")); if (!isNaN(itemDist)) { tempResult.push({ rawId: idOrName, name: finalName, dist: itemDist }); }
-  }
-  tempResult.sort((a, b) => a.dist - b.dist); let genericCounter = 0;
-  return tempResult.map(item => {
-    let finalId = "";
-    if (isPCMode) {
-      let cleanId = toHalfWidthAlphaNum(item.rawId);
-      if (cleanId.includes("PC")) { finalId = cleanId.match(/PC\d+/)?.[0] || cleanId; } else if (cleanId.includes("GOAL") || cleanId.includes("FINISH")) { finalId = "GOAL"; } else { finalId = circleNumbers[genericCounter] || `（${genericCounter + 1}）`; genericCounter++; }
-    } else { finalId = circleNumbers[genericCounter] || `（${genericCounter + 1}）`; genericCounter++; }
-    return { id: finalId, name: item.name, dist: item.dist };
-  });
-}
-
-function persistInputs() {
-  localStorage.setItem("startTime", startTime.value); localStorage.setItem("brm", brm.value); localStorage.setItem("distance", distance.value); localStorage.setItem("pcList3", pcInput.value); localStorage.setItem("shopList3", shopInput.value);
-}
-
-function update(isDistanceOrInputChanged = false) {
-  const now = new Date(); document.getElementById("currentTime").innerText = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
-  const currentDist = parseFloat(distance.value) || 0; 
-  const brmVal = brm.value || "200,13.5";
-  const [targetDistance, limitHours] = brmVal.split(",").map(Number);
-  
-  if (pcInput.value !== lastPcInputText) { globalPCList = parseTextList(pcInput.value, true); lastPcInputText = pcInput.value; }
-  if (shopInput.value !== lastShopInputText) { globalShopList = parseTextList(shopInput.value, false); lastShopInputText = shopInput.value; }
-  let progressPct = targetDistance > 0 ? Math.min(100, Math.max(0, (currentDist / targetDistance) * 100)) : 0; 
-  graphBar.style.width = progressPct + "%";
-
-  let detectedPcIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
-  for (let i = 0; i < globalPCList.length; i++) { if (globalPCList[i].dist > currentDist) { detectedPcIdx = i; break; } }
-  pcAutoTrackIdx = detectedPcIdx; if (isDistanceOrInputChanged || !isPcUserNavigating || pcDisplayIdx === -1 || pcDisplayIdx >= globalPCList.length) { if (isDistanceOrInputChanged) isPcUserNavigating = false; pcDisplayIdx = pcAutoTrackIdx; }
-
-  let detectedShopIdx = globalShopList.length > 0 ? globalShopList.length - 1 : -1;
-  for (let i = 0; i < globalShopList.length; i++) { if (globalShopList[i].dist > currentDist) { detectedShopIdx = i; break; } }
-  shopAutoTrackIdx = detectedShopIdx; if (isDistanceOrInputChanged || !isShopUserNavigating || shopDisplayIdx === -1 || shopDisplayIdx >= globalShopList.length) { if (isDistanceOrInputChanged) isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; }
-
-  renderGraphScale(targetDistance); updateDisplayOnly();
-  if (!startTime.value) return; let start = new Date(startTime.value);
-  if (isNaN(start.getTime())) return;
-  if (now < start) {
-    document.getElementById("elapsed").innerText = "スタート前"; document.getElementById("remainTime").innerText = "スタート前"; document.getElementById("gross").innerText = "--";
-    document.getElementById("remainDistance").innerText = targetDistance.toFixed(1) + " km"; document.getElementById("finish").innerText = "--"; document.getElementById("needSpeed").innerText = "--";
-    document.getElementById("saving").innerText = "--"; document.getElementById("saving").className = "big-value"; return;
-  }
-  let elapsed = (now - start) / 1000 / 3600; if (elapsed <= 0 || !distance.value) return;
-  const gross = currentDist / elapsed; document.getElementById("elapsed").innerText = Math.floor(elapsed) + "時間" + Math.floor((elapsed - Math.floor(elapsed)) * 60) + "分";
-  const totalRemainTime = limitHours - elapsed; document.getElementById("remainTime").innerText = totalRemainTime > 0 ? Math.floor(totalRemainTime) + "時間" + Math.floor((totalRemainTime - Math.floor(totalRemainTime)) * 60) + "分" : "タイムアウト";
-  document.getElementById("gross").innerText = gross.toFixed(2) + " km/h"; const remainDist = targetDistance - currentDist; document.getElementById("remainDistance").innerText = Math.max(0, remainDist).toFixed(1) + " km";
-  document.getElementById("finish").innerText = new Date(start.getTime() + (targetDistance / gross) * 3600000).toLocaleDateString("ja-JP", { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-  document.getElementById("needSpeed").innerText = (remainDist > 0 && totalRemainTime > 0) ? (remainDist / totalRemainTime).toFixed(1) + " km/h" : "---";
-  
-  const saving = limitHours - (targetDistance / gross); const savSign = saving >= 0 ? "+" : "-"; const savH = Math.floor(Math.abs(saving)); const savM = Math.floor((Math.abs(saving) % 1) * 60);
-  let statusIcon = "🔴", statusClass = "big-value red"; if (saving >= 2) { statusIcon = "🟢"; statusClass = "big-value green"; } else if (saving >= 1) { statusIcon = "🟡"; statusClass = "big-value yellow"; }
-  const savingElement = document.getElementById("saving"); savingElement.innerText = statusIcon + " " + savSign + savH + "時間" + savM + "分"; savingElement.className = statusClass;
-}
-
 resetBtn.addEventListener("click", () => {
-  if (confirm("すべての設定、リスト、走行データをリセットしますか？")) {
-    localStorage.removeItem("startTime"); localStorage.removeItem("distance"); localStorage.removeItem("pcList3"); localStorage.removeItem("shopList3");
-    localStorage.removeItem("convenienceBtnState"); localStorage.removeItem("gpxTrackPoints");
+  if (confirm("全ての設定、現在の入力、読み込んだGPXトラックデータを初期化しますか？\n(※アプリ保存データは削除されません)")) {
+    localStorage.removeItem("startTime");
+    localStorage.removeItem("brm");
+    localStorage.removeItem("distance");
+    localStorage.removeItem("pcList3");
+    localStorage.removeItem("shopList3");
+    localStorage.removeItem("gpxTrackPoints");
     gpxTrackPoints = [];
+    
     startTime.value = ""; distance.value = ""; pcInput.value = ""; shopInput.value = ""; saveName.value = ""; tempDistanceValue = ""; graphBar.style.width = "0%";
     ["elapsed", "remainTime", "gross", "remainDistance", "finish", "needSpeed", "saving"].forEach(id => document.getElementById(id).innerText = "--");
     document.getElementById("saving").className = "big-value"; isPcUserNavigating = false; isShopUserNavigating = false; menuContent.classList.remove("open");
     loadSavedListsDropdown(); savedListsSelect.selectedIndex = 0; shopToggle.checked = true; localStorage.setItem("shopToggleState", "true");
     document.body.classList.remove("shop-off"); shopCard.style.display = "block"; mapDblClickToggle.checked = true; localStorage.setItem("mapDblClickState", "true");
     convenienceBtnToggle.checked = true; convenienceBtnWrapper.style.display = "block"; topRowGrid.classList.remove("convenience-off");
+    
+    // キャンバスクリア
+    const canvas = document.getElementById("elevationCanvas");
+    if (canvas) { const ctx = canvas.getContext("2d"); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    
     update(true); alert("リセットが完了しました。");
   }
 });
 
-// スマホ画面回転時なども比率が崩れないよう追従
+// ウィンドウリサイズ時にもキャンバスの横幅を自動追従させる
 window.addEventListener("resize", () => {
   const brmVal = brm.value || "200,13.5";
   const [targetDistance] = brmVal.split(",").map(Number);
-  drawElevationProfile(targetDistance);
+  updateDisplayOnly();
 });
 
 setInterval(() => update(false), 1000);
@@ -690,5 +976,10 @@ shopInput.addEventListener("input", () => { persistInputs(); update(true); });
 startTime.addEventListener("change", () => { persistInputs(); update(false); });
 brm.addEventListener("change", () => { persistInputs(); update(false); });
 document.addEventListener("resume", () => update(false), false);
+
+// 初期起動処理
+const brmVal = brm.value || "200,13.5";
+const [targetDistance] = brmVal.split(",").map(Number);
+renderGraphScale(targetDistance);
 loadSavedListsDropdown();
 update(true);
