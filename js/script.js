@@ -241,6 +241,7 @@ gpxFileInput.addEventListener("change", (e) => {
         const wLon = parseFloat(wpts[i].getAttribute("lon"));
         const nameEl = wpts[i].getElementsByTagName("name")[0];
         const name = nameEl ? nameEl.textContent.trim() : `Point ${i+1}`;
+        const nameLower = name.toLowerCase();
         
         // トラックの中から一番近いポイントを探す
         let minDist = Infinity;
@@ -251,11 +252,14 @@ gpxFileInput.addEventListener("change", (e) => {
         }
         
         const ptDistStr = matchedPoint.dist.toFixed(1);
-        const nameLower = name.toLowerCase();
         
         // PC、通過チェック、START、GOAL、FINISH等は①公式へ、それ以外（コンビニ、休憩など）は②休憩へ振り分け
         if (nameLower.includes("pc") || nameLower.includes("check") || nameLower.includes("チェック") || nameLower.includes("start") || nameLower.includes("goal") || nameLower.includes("finish") || nameLower.includes("通過")) {
-          let cleanName = name.replace(/^(pc\d*|通過チェック\d*|start|goal|finish)\s*[\s ,，、_\-]/i, "");
+          // 元の名前から「PC1」「通過チェック①」などの既存のプレフィックスを綺麗に除去する（二重表示対策）
+          let cleanName = name.replace(/^(pc\d*|通過チェック[①-⑳\d]*|start|goal|finish|チェック)\s*[\s ,，、_\-]/i, "").trim();
+          // さらに文字列の先頭に残っているかもしれない「通過チェック①」などの重複を完全に消去
+          cleanName = cleanName.replace(/^(通過チェック[①-⑳\d]*|ｐｃ\d*)/i, "").trim();
+          
           let label = "PC";
           if (nameLower.includes("start")) label = "START";
           else if (nameLower.includes("goal") || nameLower.includes("finish")) label = "GOAL";
