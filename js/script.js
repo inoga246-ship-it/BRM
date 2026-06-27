@@ -56,11 +56,12 @@ let globalPCList = [];
 let globalShopList = []; 
 let gpxTrackPoints = []; // GPXから解析した全トラックポイント [{lat, lon, ele, dist, gain}]
 
-// 進捗バー拡大表示（現在地から25km先までの範囲にズーム）用の状態
+// 進捗バー拡大表示（現在地の5km手前から25km先までの計30km範囲にズーム）用の状態
 let isZoomedView = false;
 let zoomRangeStart = 0;
 let zoomRangeEnd = 0;
-const ZOOM_RANGE_KM = 25;
+const ZOOM_BEFORE_KM = 5;
+const ZOOM_AFTER_KM = 25;
 
 let pcDisplayIdx = -1; 
 let pcAutoTrackIdx = -1;        
@@ -570,8 +571,8 @@ function toggleZoomView() {
     isZoomedView = false;
   } else {
     const currentDist = parseFloat(distance.value) || 0;
-    zoomRangeStart = currentDist;
-    zoomRangeEnd = currentDist + ZOOM_RANGE_KM;
+    zoomRangeStart = Math.max(0, currentDist - ZOOM_BEFORE_KM);
+    zoomRangeEnd = currentDist + ZOOM_AFTER_KM;
     isZoomedView = true;
   }
   renderGraphScale(targetDistance);
