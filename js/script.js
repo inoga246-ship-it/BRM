@@ -68,6 +68,7 @@ let lastPcInputText = null;
 let lastShopInputText = null;
 
 function toHalfWidthAlphaNum(str) {
+  if (!str) return "";
   return str.replace(/[！-～]/g, function(s) {
     return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
   }).replace(/[\s ]+/g, '').toUpperCase();
@@ -131,7 +132,8 @@ shopToggle.addEventListener("change", () => {
     document.body.classList.add("shop-off");
     shopCard.style.display = "none";
   }
-  const [targetDistance] = brm.value.split(",").map(Number);
+  const brmVal = brm.value || "200,13.5";
+  const [targetDistance] = brmVal.split(",").map(Number);
   renderGraphScale(targetDistance);
   updateDisplayOnly();
 });
@@ -155,8 +157,17 @@ distance.addEventListener("blur", () => { if (distance.value === "") { distance.
 function searchOnGoogleMap(keyword) {
   if (!keyword || keyword.includes("ゴール") || keyword.includes("登録なし") || keyword.includes("---")) return;
   const userAgent = navigator.userAgent.toLowerCase();
-  let url = /iphone|ipad|ipod/.test(userAgent) ? "http://maps.apple.com/?q=" + encodeURIComponent(keyword) : "http://maps.google.com/?q=" + encodeURIComponent(keyword);
-  if (window.cordova && window.cordova.InAppBrowser) { window.cordova.InAppBrowser.open(url, '_system'); } else { window.open(url, '_blank'); }
+  
+  // iOSマップアプリ連携か、汎用GoogleマップURLかで分岐（マップリンクURLの適正化）
+  let url = /iphone|ipad|ipod/.test(userAgent) 
+    ? "http://maps.apple.com/?q=" + encodeURIComponent(keyword) 
+    : "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(keyword);
+    
+  if (window.cordova && window.cordova.InAppBrowser) { 
+    window.cordova.InAppBrowser.open(url, '_system'); 
+  } else { 
+    window.open(url, '_blank'); 
+  }
 }
 
 function searchOnGoogleMapNearby(keyword, lat, lng) {
@@ -165,7 +176,7 @@ function searchOnGoogleMapNearby(keyword, lat, lng) {
   if (/iphone|ipad|ipod/.test(userAgent)) {
     url = "http://maps.apple.com/?q=" + encodeURIComponent(keyword) + "&sll=" + lat + "," + lng + "&z=15";
   } else {
-    url = "https://www.google.com/maps/search/" + encodeURIComponent(keyword) + "/@" + lat + "," + lng + ",15z";
+    url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(keyword + " 近く") + "&center=" + lat + "," + lng;
   }
   if (window.cordova && window.cordova.InAppBrowser) { window.cordova.InAppBrowser.open(url, '_system'); } else { window.open(url, '_blank'); }
 }
@@ -237,7 +248,7 @@ gpxFileInput.addEventListener("change", (e) => {
             totalGain += dEle;
             lastCountedEle = ele; // 基準点を更新
           } else if (dEle <= -ELE_THRESHOLD) {
-            // 下り方向にも一定以上下がったら基準点を追従させる（平坦路のノイズ蓄積を防ぐため）
+            // 下り方向にも一定以上下がったら基準点を追従させる
             lastCountedEle = ele;
           }
         }
@@ -267,11 +278,10 @@ gpxFileInput.addEventListener("change", (e) => {
         
         const ptDistStr = matchedPoint.dist.toFixed(1);
         
-        // PC、通過チェック、START、GOAL、FINISH等は①公式へ、それ以外（コンビニ、休憩など）は②休憩へ振り分け
+        // PC、通過チェック、START、GOAL、FINISH等は公式へ、それ以外は休憩へ振り分け
         if (nameLower.includes("pc") || nameLower.includes("check") || nameLower.includes("チェック") || nameLower.includes("start") || nameLower.includes("goal") || nameLower.includes("finish") || nameLower.includes("通過")) {
-          // 元の名前から「PC1」「通過チェック①」などの既存のプレフィックスを綺麗に除去する（二重表示対策）
+          // 重複プレフィックスを綺麗に除去
           let cleanName = name.replace(/^(pc\d*|通過チェック[①-⑳\d]*|start|goal|finish|チェック)\s*[\s ,，、_\-]/i, "").trim();
-          // さらに文字列の先頭に残っているかもしれない「通過チェック①」などの重複を完全に消去
           cleanName = cleanName.replace(/^(通過チェック[①-⑳\d]*|ｐｃ\d*)/i, "").trim();
           
           let label = "PC";
@@ -441,10 +451,10 @@ importFileInput.addEventListener("change", (e) => {
   reader.readAsText(file);
 });
 
-pcPrevBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx > 0) { isPcUserNavigating = true; pcDisplayIdx--; const [targetDistance] = brm.value.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-pcNextBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx < globalPCList.length - 1) { isPcUserNavigating = true; pcDisplayIdx++; const [targetDistance] = brm.value.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-shopPrevBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx > 0) { isShopUserNavigating = true; shopDisplayIdx--; const [targetDistance] = brm.value.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-shopNextBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx < globalShopList.length - 1) { isShopUserNavigating = true; shopDisplayIdx++; const [targetDistance] = brm.value.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
+pcPrevBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx > 0) { isPcUserNavigating = true; pcDisplayIdx--; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
+pcNextBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx < globalPCList.length - 1) { isPcUserNavigating = true; pcDisplayIdx++; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
+shopPrevBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx > 0) { isShopUserNavigating = true; shopDisplayIdx--; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
+shopNextBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx < globalShopList.length - 1) { isShopUserNavigating = true; shopDisplayIdx++; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
 
 function formatArrivalDate(targetDate, startStr) {
   if (!startStr) return "--:--"; const start = new Date(startStr); const hrs = String(targetDate.getHours()).padStart(2, '0'); const mins = String(targetDate.getMinutes()).padStart(2, '0');
@@ -499,6 +509,7 @@ function updateDisplayOnly() {
 }
 
 function renderGraphScale(targetDistance) {
+  if (!targetDistance || targetDistance <= 0) return;
   const items = graphScale.querySelectorAll(".scale-point"); items.forEach(el => el.remove());
   createScalePoint(0, "START", "neutral-type", "10px", null); createScalePoint(100, "GOAL", "neutral-type", "10px", null);
   let lastPctPC = -999; let useUpperRowPC = false;
@@ -529,6 +540,7 @@ function createScalePoint(leftPct, label, className, topStyle, bottomStyle) {
 }
 
 function parseTextList(textData, isPCMode = false) {
+  if (!textData) return [];
   const lines = textData.split("\n").filter(line => line.trim() !== ""); const tempResult = [];
   for (let line of lines) {
     const columns = line.split(/[,,、，]/).map(c => c.trim()); if (columns.length < 2) continue;
@@ -553,10 +565,14 @@ function persistInputs() {
 
 function update(isDistanceOrInputChanged = false) {
   const now = new Date(); document.getElementById("currentTime").innerText = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
-  const currentDist = parseFloat(distance.value) || 0; const [targetDistance, limitHours] = brm.value.split(",").map(Number);
+  const currentDist = parseFloat(distance.value) || 0; 
+  const brmVal = brm.value || "200,13.5";
+  const [targetDistance, limitHours] = brmVal.split(",").map(Number);
+  
   if (pcInput.value !== lastPcInputText) { globalPCList = parseTextList(pcInput.value, true); lastPcInputText = pcInput.value; }
   if (shopInput.value !== lastShopInputText) { globalShopList = parseTextList(shopInput.value, false); lastShopInputText = shopInput.value; }
-  let progressPct = Math.min(100, Math.max(0, (currentDist / targetDistance) * 100)); graphBar.style.width = progressPct + "%";
+  let progressPct = targetDistance > 0 ? Math.min(100, Math.max(0, (currentDist / targetDistance) * 100)) : 0; 
+  graphBar.style.width = progressPct + "%";
 
   let detectedPcIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
   for (let i = 0; i < globalPCList.length; i++) { if (globalPCList[i].dist > currentDist) { detectedPcIdx = i; break; } }
@@ -568,6 +584,7 @@ function update(isDistanceOrInputChanged = false) {
 
   renderGraphScale(targetDistance); updateDisplayOnly();
   if (!startTime.value) return; let start = new Date(startTime.value);
+  if (isNaN(start.getTime())) return;
   if (now < start) {
     document.getElementById("elapsed").innerText = "スタート前"; document.getElementById("remainTime").innerText = "スタート前"; document.getElementById("gross").innerText = "--";
     document.getElementById("remainDistance").innerText = targetDistance.toFixed(1) + " km"; document.getElementById("finish").innerText = "--"; document.getElementById("needSpeed").innerText = "--";
