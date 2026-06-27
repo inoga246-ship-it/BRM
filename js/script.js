@@ -83,7 +83,15 @@ shopInput.value = localStorage.getItem("shopList3") || defaultShopList;
 // GPXトラックデータの復元
 try {
   const cachedGpx = localStorage.getItem("gpxTrackPoints");
-  if (cachedGpx) gpxTrackPoints = JSON.parse(cachedGpx);
+  if (cachedGpx) {
+    gpxTrackPoints = JSON.parse(cachedGpx);
+    // 起動時に背景高低図を描画
+    setTimeout(() => {
+      const brmVal = brm.value || "200,13.5";
+      const [targetDistance] = brmVal.split(",").map(Number);
+      drawElevationProfile(targetDistance);
+    }, 300);
+  }
 } catch(e) { gpxTrackPoints = []; }
 
 const savedToggleState = localStorage.getItem("shopToggleState");
@@ -135,6 +143,7 @@ shopToggle.addEventListener("change", () => {
   const brmVal = brm.value || "200,13.5";
   const [targetDistance] = brmVal.split(",").map(Number);
   renderGraphScale(targetDistance);
+  drawElevationProfile(targetDistance);
   updateDisplayOnly();
 });
 
@@ -196,6 +205,93 @@ pcRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); if (isPc
 pcTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDblClickToggle.checked) return; if (globalPCList.length > 0 && pcDisplayIdx !== -1) { const item = globalPCList[pcDisplayIdx]; searchOnGoogleMap(item.id + " " + item.name); } });
 shopRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); if (isShopUserNavigating) { isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; update(true); } });
 shopTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDblClickToggle.checked) return; if (globalShopList.length > 0 && shopDisplayIdx !== -1) { searchOnGoogleMap(globalShopList[shopDisplayIdx].name); } });
+
+// ★新機能：グラフの裏側の隙間に簡易工程高低図（SVG）を描画する関数
+function drawElevationProfile(targetDistance) {
+  const container = document.getElementById("graphScale");
+  if (!container || gpxTrackPoints.length === 0 || !targetDistance || targetDistance <= 0) return;
+
+  // 既存の背景用SVGを一度クリア
+  const oldSvg = container.querySelector(".elevation-profile-svg");
+  if (oldSvg) oldSvg.remove();
+
+  // 標高の最大・最小値を取得
+  let minEle = Infinity;
+  let maxEle = -Infinity;
+  gpxTrackPoints.forEach(pt => {
+    if (pt.ele < minEle) minEle = pt.ele;
+    if (pt.ele > maxEle) maxEle = pt.ele;
+  });
+
+  // 平坦すぎる場合の安全処理
+  if (maxEle === minEle) { maxEle += 100; minEle -= 100; }
+  const eleRange = maxEle - minEle;
+
+  // トラックポイントの間引き処理（負荷軽減のため最大200ピクセルに縮小）
+  const samplingCount = 150;
+  let pathCoords = [];
+  
+  for (let i = 0; i <= samplingCount; i++) {
+    const currentSampleDist = (targetDistance * i) / samplingCount;
+    // 最も近い距離のポイントを探索
+    let matchedPt = gpxTrackPoints[0];
+    for (let j = 0; j < gpxTrackPoints.length; j++) {
+      if (gpxTrackPoints[j].dist >= currentSampleDist) {
+        matchedPt = gpxTrackPoints[j];
+        break;
+      }
+    }
+    
+    const xPct = (matchedPt.dist / targetDistance) * 100;
+    // 上下に少しマージン（10%〜90%の範囲に収める）を持たせて反転（SVGは上が0のため）
+    const yPct = 95 - ((matchedPt.ele - minEle) / eleRange) * 80;
+    pathCoords.push(`${xPct.toFixed(1)},${yPct.toFixed(1)}`);
+  }
+
+  // SVGエレメントを作成してスケールコンテナの最背面に挿入
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("class", "elevation-profile-svg");
+  svg.setAttribute("width", "100%");
+  svg.setAttribute("height", "100%");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.style.position = "absolute";
+  svg.style.top = "0";
+  svg.style.left = "0";
+  svg.style.width = "100%";
+  svg.style.height = "100%";
+  svg.style.zIndex = "1"; // スケールや文字より下、背景より上
+  svg.style.pointerEvents = "none";
+  svg.style.opacity = "0.22"; // 邪魔にならないように半透明化
+
+  // 面を塗りつぶすためのパスデータ（山の形の下側を閉じる）
+  const fillPathData = `M 0,100 L ${pathCoords.join(" L ")} L 100,100 Z`;
+  const path = document.createElementNS(svgNS, "path");
+  path.setAttribute("d", fillPathData);
+  path.setAttribute("fill", "url(#elevationGrad)");
+  path.setAttribute("stroke", "#38ef7d"); // 頂点ラインにネオングリーン
+  path.setAttribute("stroke-width", "1.5");
+
+  // グラデーション効果の定義
+  const defs = document.createElementNS(svgNS, "defs");
+  const grad = document.createElementNS(svgNS, "linearGradient");
+  grad.setAttribute("id", "elevationGrad");
+  grad.setAttribute("x1", "0%"); grad.setAttribute("y1", "0%");
+  grad.setAttribute("x2", "0%"); grad.setAttribute("y2", "100%");
+  
+  const stop1 = document.createElementNS(svgNS, "stop");
+  stop1.setAttribute("offset", "0%"); stop1.setAttribute("stop-color", "#11998e");
+  const stop2 = document.createElementNS(svgNS, "stop");
+  stop2.setAttribute("offset", "100%"); stop2.setAttribute("stop-color", "transparent");
+
+  grad.appendChild(stop1);
+  grad.appendChild(stop2);
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+  svg.appendChild(path);
+
+  container.appendChild(svg);
+}
 
 // --- GPXパーサー実装部分 ---
 gpxBtn.addEventListener("click", () => gpxFileInput.click());
@@ -438,10 +534,10 @@ importFileInput.addEventListener("change", (e) => {
   reader.readAsText(file);
 });
 
-pcPrevBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx > 0) { isPcUserNavigating = true; pcDisplayIdx--; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-pcNextBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx < globalPCList.length - 1) { isPcUserNavigating = true; pcDisplayIdx++; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-shopPrevBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx > 0) { isShopUserNavigating = true; shopDisplayIdx--; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
-shopNextBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx < globalShopList.length - 1) { isShopUserNavigating = true; shopDisplayIdx++; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); updateDisplayOnly(); } });
+pcPrevBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx > 0) { isPcUserNavigating = true; pcDisplayIdx--; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); drawElevationProfile(targetDistance); updateDisplayOnly(); } });
+pcNextBtn.addEventListener("click", () => { if (globalPCList.length === 0) return; if (pcDisplayIdx < globalPCList.length - 1) { isPcUserNavigating = true; pcDisplayIdx++; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); drawElevationProfile(targetDistance); updateDisplayOnly(); } });
+shopPrevBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx > 0) { isShopUserNavigating = true; shopDisplayIdx--; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); drawElevationProfile(targetDistance); updateDisplayOnly(); } });
+shopNextBtn.addEventListener("click", () => { if (globalShopList.length === 0) return; if (shopDisplayIdx < globalShopList.length - 1) { isShopUserNavigating = true; shopDisplayIdx++; const brmVal = brm.value || "200,13.5"; const [targetDistance] = brmVal.split(",").map(Number); renderGraphScale(targetDistance); drawElevationProfile(targetDistance); updateDisplayOnly(); } });
 
 function formatArrivalDate(targetDate, startStr) {
   if (!startStr) return "--:--"; const start = new Date(startStr); const hrs = String(targetDate.getHours()).padStart(2, '0'); const mins = String(targetDate.getMinutes()).padStart(2, '0');
@@ -449,7 +545,6 @@ function formatArrivalDate(targetDate, startStr) {
   return hrs + ":" + mins;
 }
 
-// ★今回の調整対象：表示HTML構築処理 (括弧の削除)
 function updateDisplayOnly() {
   const currentDist = parseFloat(distance.value) || 0;
   let startReady = false; let start = null; if (startTime.value) { start = new Date(startTime.value); if (!isNaN(start.getTime())) startReady = true; }
@@ -467,7 +562,6 @@ function updateDisplayOnly() {
       const remGain = Math.max(0, Math.round(pcGain - currentGain));
       gainStr = remGain + "m";
     }
-    // 【修正】（獲得標高 ○○m）の「（）」を削除しました
     pcRemainDist.innerHTML = diffDist >= 0 
       ? `残り ${diffDist.toFixed(1)} km<span class="ele-small">獲得標高 ${gainStr}</span>` 
       : `通過後 ${Math.abs(diffDist).toFixed(1)} km<span class="ele-small">獲得標高 --m</span>`;
@@ -491,7 +585,6 @@ function updateDisplayOnly() {
       const remGain = Math.max(0, Math.round(shopGain - currentGain));
       gainStr = remGain + "m";
     }
-    // 【修正】（獲得標高 ○○m）の「（）」を削除しました
     shopRemainDist.innerHTML = diffDist >= 0 
       ? `残り ${diffDist.toFixed(1)} km<span class="ele-small">獲得標高 ${gainStr}</span>` 
       : `通過後 ${Math.abs(diffDist).toFixed(1)} km<span class="ele-small">獲得標高 --m</span>`;
@@ -574,7 +667,10 @@ function update(isDistanceOrInputChanged = false) {
   for (let i = 0; i < globalShopList.length; i++) { if (globalShopList[i].dist > currentDist) { detectedShopIdx = i; break; } }
   shopAutoTrackIdx = detectedShopIdx; if (isDistanceOrInputChanged || !isShopUserNavigating || shopDisplayIdx === -1 || shopDisplayIdx >= globalShopList.length) { if (isDistanceOrInputChanged) isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; }
 
-  renderGraphScale(targetDistance); updateDisplayOnly();
+  renderGraphScale(targetDistance); 
+  drawElevationProfile(targetDistance); // 各種更新時に高低図を再配置
+  updateDisplayOnly();
+  
   if (!startTime.value) return; let start = new Date(startTime.value);
   if (isNaN(start.getTime())) return;
   if (now < start) {
@@ -600,6 +696,7 @@ resetBtn.addEventListener("click", () => {
     localStorage.removeItem("convenienceBtnState"); localStorage.removeItem("gpxTrackPoints");
     gpxTrackPoints = [];
     startTime.value = ""; distance.value = ""; pcInput.value = ""; shopInput.value = ""; saveName.value = ""; tempDistanceValue = ""; graphBar.style.width = "0%";
+    const oldSvg = graphScale.querySelector(".elevation-profile-svg"); if (oldSvg) oldSvg.remove();
     ["elapsed", "remainTime", "gross", "remainDistance", "finish", "needSpeed", "saving"].forEach(id => document.getElementById(id).innerText = "--");
     document.getElementById("saving").className = "big-value"; isPcUserNavigating = false; isShopUserNavigating = false; menuContent.classList.remove("open");
     loadSavedListsDropdown(); savedListsSelect.selectedIndex = 0; shopToggle.checked = true; localStorage.setItem("shopToggleState", "true");
