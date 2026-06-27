@@ -30,188 +30,166 @@
       <div class="modal-body">
         <div class="menu-top-row">
           <div class="card-center half">
-            <label class="label-center" style="color: #fff;">BRM設定</label>
-            <select id="brm">
-              <option value="200,13.5">200km (13.5h)</option>
-              <option value="300,20">300km (20h)</option>
-              <option value="400,27">400km (27h)</option>
-              <option value="600,40">600km (40h)</option>
-            </select>
-          </div>
-          <div class="card-center half">
-            <label class="label-center" style="color: #fff;">START日時</label>
+            <div class="menu-item-title">スタート日時</div>
             <input type="datetime-local" id="startTime">
           </div>
-        </div>
-
-        <div class="menu-section-block">
-          <div class="label-toggle-wrapper" style="gap: 8px;">
-            <div style="flex: 1;">
-              <button type="button" class="btn-save" id="gpxBtn" style="width: 100%; background: #2563eb; box-shadow: 0 2px 6px rgba(37,99,235,0.3); padding: 6px 4px; font-size: 12px;">🗺️ GPX読み込み</button>
-              <input type="file" id="gpxFileInput" accept=".gpx" style="display:none;">
-            </div>
-            <div style="flex: 1; display: flex; justify-content: space-between; align-items: center; border-left: 1px solid #334155; padding-left: 8px;">
-              <label class="menu-label-inline" style="color: #00ffaa; font-size: 11px;">🏪 コンビニ検索<br>の有効化</label>
-              <label class="switch">
-                <input type="checkbox" id="convenienceBtnToggle" checked>
-                <span class="slider"></span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="menu-section-block">
-          <div class="label-toggle-wrapper">
-            <label class="menu-label-inline" style="color: #00d2ff;">① 公式PC・通過チェック リスト登録</label>
-            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-              <span style="font-size: 11px; color: #94a3b8;">Wクリック地図連動</span>
-              <label class="switch">
-                <input type="checkbox" id="mapDblClickToggle" checked>
-                <span class="slider"></span>
-              </label>
-            </div>
-          </div>
-          <textarea id="pcInput" placeholder="例:
-PC1, 御幸橋, 24.9km
-PC2, 山城大橋, 68.0km"></textarea>
-        </div>
-
-        <div class="menu-section-block" id="menuShopInputWrapper">
-          <div class="label-toggle-wrapper">
-            <label class="menu-label-inline" style="color: #00ffaa;">② コンビニ・休憩・任意スポット 表示有効化</label>
-            <label class="switch">
-              <input type="checkbox" id="shopToggle" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-          <textarea id="shopInput" placeholder="例:
-ローソン 八幡南店, 32.1
-セブン 宇治川店, 50.4"></textarea>
-        </div>
-
-        <div style="margin-bottom: 8px;">
-          <label class="menu-label">現在のリスト一式を保存する</label>
-          <div class="menu-input-row">
-            <input type="text" id="saveName" placeholder="例: BRM315泉佐野" style="font-size:13px; padding:5px; text-align:left;">
-            <button class="btn-save" id="saveBtn">保存</button>
-          </div>
-        </div>
-
-        <div style="margin-bottom: 10px;">
-          <label class="menu-label">保存済みリストの呼び出し / 削除</label>
-          <div class="menu-input-row">
-            <select id="savedListsSelect" style="font-size:13px; padding:5px; text-align:left; text-align-last:left;">
-              <option value="">-- 保存データがありません --</option>
+          <div class="card-center half">
+            <div class="menu-item-title">BRM種別 (距離,時間制限)</div>
+            <select id="brm">
+              <option value="200,13.5">BRM200km (13時間30分)</option>
+              <option value="300,20">BRM300km (20時間00分)</option>
+              <option value="400,27">BRM400km (27時間00分)</option>
+              <option value="600,40">BRM600km (40時間00分)</option>
+              <option value="1000,75">BRM1000km (75時間00分)</option>
             </select>
-            <button class="btn-delete" id="deleteBtn">削除</button>
           </div>
         </div>
 
-        <div class="menu-input-row" style="margin-top: 6px;">
-          <button class="btn-save" id="exportBtn" style="flex:1;">📤 バックアップ書き出し</button>
-          <button class="btn-save" id="importBtn" style="flex:1; background:#334155;">📥 バックアップ読み込み</button>
+        <div class="menu-toggle-row">
+          <label class="toggle-container">
+            <input type="checkbox" id="shopToggle" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">ショップ・休憩カードを表示</span>
+          </label>
         </div>
-        <input type="file" id="importFileInput" accept="application/json" style="display:none;">
 
-        <button class="btn-reset" id="resetBtn">リセット</button>
+        <div class="menu-toggle-row">
+          <label class="toggle-container">
+            <input type="checkbox" id="mapDblClickToggle" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">タイトルWクリックでMap検索を開く</span>
+          </label>
+        </div>
+
+        <div class="menu-toggle-row">
+          <label class="toggle-container">
+            <input type="checkbox" id="convenienceBtnToggle" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">「周辺のコンビニ」ボタンを表示</span>
+          </label>
+        </div>
+
+        <div class="menu-gpx-row">
+          <button class="gpx-btn" id="gpxBtn">🌐 GPXファイルから自動設定</button>
+          <input type="file" id="gpxFileInput" accept=".gpx" style="display:none;">
+        </div>
+
+        <div class="menu-lists-row">
+          <div class="menu-item-title">PC・通過チェック リスト入力</div>
+          <textarea id="pcInput" rows="4" placeholder="PC1, コンビニ名, 25.1km&#10;PC2, 通過チェック名, 68.4km"></textarea>
+          
+          <div class="menu-item-title" style="margin-top:10px;">ショップ・休憩候補 リスト入力</div>
+          <textarea id="shopInput" rows="4" placeholder="ローソン 〇〇店, 45.2&#10;セブン 〇〇店, 112.0"></textarea>
+        </div>
+
+        <div class="save-load-block">
+          <div class="save-input-row">
+            <input type="text" id="saveName" placeholder="保存名(例: 2026近畿200)">
+            <button class="action-btn-green" id="saveBtn">保存</button>
+          </div>
+          <div class="load-select-row">
+            <select id="savedListsSelect">
+              <option value="">-- リストを選択して呼び出し --</option>
+            </select>
+            <button class="action-btn-red" id="deleteBtn">削除</button>
+          </div>
+        </div>
+
+        <div class="backup-restore-block">
+          <button class="backup-btn" id="exportBtn">📤 バックアップ書出 (JSON)</button>
+          <button class="restore-btn" id="importBtn">📥 バックアップ読込</button>
+          <input type="file" id="importFileInput" accept=".json" style="display:none;">
+        </div>
+
+        <div style="margin-top:20px; text-align:center;">
+          <button class="reset-btn" id="resetBtn">🚨 アプリを完全リセット</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="modal-overlay" id="helpModal">
-    <div class="modal-content">
+  <div class="help-modal" id="helpModal">
+    <div class="modal-content" style="border-color: #00ffcc; box-shadow: 0 0 25px rgba(0, 255, 204, 0.2);">
       <div class="modal-header">
-        <div class="modal-title">📖 アプリ使用マニュアル</div>
+        <div class="modal-title" style="color: #00ffcc; text-shadow: 0 0 6px rgba(0, 255, 204, 0.4);">❓ 使い方ヘルプ</div>
         <button class="modal-close-btn" id="modalCloseBtn">閉じる</button>
       </div>
-      <div class="modal-body">
-        <h4>1. 事前準備 (☰ メメニュー)</h4>
-        <ul>
-          <li><strong>🗺️ GPX読み込み:</strong> Ride with RWGPS等で作ったGPX（チェックポイント情報付き）を読み込ませると、①公式リスト・距離・獲得標高がすべて自動計算されて一括セットされます。</li>
-          <li><strong>BRM設定:</strong> 距離と制限時間枠を選びます。</li>
-          <li><strong>START日時:</strong> 出発時刻を正確に入力します。</li>
-          <li><strong>① 公式PCリスト:</strong> 「PC1, 地点名, 距離km」で改行入力。</li>
-          <li><strong>② 休憩スポット:</strong> 「店舗名, 距離」で改行入力します。</li>
-          <li><strong>🏪検索ボタン設定:</strong> 最上段のワンタップコンビニ検索ボタンのオンオフを設定できます。</li>
-        </ul>
-
-        <h4>2. 基本操作</h4>
-        <ul>
-          <li><strong>現在距離の更新:</strong> サイコンの積算距離を入力。</li>
-          <li><strong>目標ペース設計:</strong> PC枠内の15〜20km/h各グロス速度に応じた到着予想時刻を目安に走ります。</li>
-          <li><strong>🏪 ボタン:</strong> 走行中、現在地周辺の最寄りコンビニをマップアプリでワンタップ検索します。</li>
-        </ul>
-
-        <h4>3. ナビゲーションとマップ連動</h4>
-        <ul>
-          <li><strong>先行プレビュー:</strong> 各カード of <code>◀ 前</code> <code>次 ▶</code> ボタンで、距離に関係なく先々の地点を自由に確認可能。</li>
-          <li><strong>自動追従へ復帰:</strong> プレビュー中に中央の黄色の距離表示（<code>残り~km</code>）を<strong>ダブルクリック</strong>すると、現在地ベースの「次のスポット」に一発復帰します。</li>
-          <li><strong>マップ検索:</strong> 各カードの「地点名エリア」を<strong>ダブルクリック</strong>すると、その場所をマップで即座に検索できます（メニュー内連動ON時のみ）。</li>
-        </ul>
-
-        <h4>4. 表示のカスタマイズ</h4>
-        <ul>
-          <li>メニュー内の「② コンビニ…」右側のトグルをOFFにすると、休憩枠が隠れ、残ったPC情報や最下段の<strong>「貯金時間」が自動で大きく拡大表示</strong>され、夜間も見やすくなります。</li>
-        </ul>
-
-        <h4>5. 各種ステータス</h4>
-        <ul>
-          <li><strong>必要平均:</strong> 制限時間内にゴールする最低グロス速度。15km/hに近づくと危険です。</li>
-          <li><strong>貯金時間:</strong> 制限時間に対する現在のアドバンテージ。
-            <br><span class="green">🟢 2時間以上</span> / <span class="yellow">🟡 1時間以上</span> / <span class="red">🔴 1時間未満（危険）</span>
-          </li>
+      <div class="modal-body" style="font-size:13px; line-height:1.6; color:#e0e6ed;">
+        <p style="margin-bottom:10px; font-weight:bold; color:#00ffcc;">■ 基本フロー</p>
+        <ol style="margin-left:20px; margin-bottom:15px;">
+          <li>右上の「☰」からメニューを開く。</li>
+          <li>スタート日時、BRM種別（距離）を設定。</li>
+          <li>GPXファイルを読み込むと、コース総距離・全獲得標高の解析、およびルート上のウェイポイント（PCやクイズ、店舗等）が距離付きで自動リスト化されます。</li>
+          <li>走行中、現在の「走行距離」を随時更新（入力）していきます。</li>
+        </ol>
+        <p style="margin-bottom:10px; font-weight:bold; color:#00ffcc;">■ 便利な機能・Tips</p>
+        <ul style="margin-left:20px; margin-bottom:15px;">
+          <li><b>自動追従:</b> 走行距離を入力すると、最も近い「次のPC」「次の休憩」へ表示が自動で進みます。</li>
+          <li><b>手動切り替え:</b> カードの「◀前」「次▶」ボタンで、先々のチェック場所を自由に確認できます。距離のエリアを<b>ダブルクリック</b>すると、自動追従モードに戻ります。</li>
+          <li><b>マップ連携:</b> カードのタイトル（場所名）を<b>ダブルクリック</b>すると、その場所をGoogleマップ（iOSはAppleマップ）で直接検索します。</li>
+          <li><b>周辺コンビニ検索:</b> 「周辺のコンビニ」ボタンを押すと、今あなたのいる現在地から近くのコンビニをマップ上に即座にリストアップします。</li>
         </ul>
       </div>
     </div>
   </div>
 
   <div class="top-row-grid" id="topRowGrid">
-    <div class="slim-card" id="distanceCard">
-      <div class="title">現在距離</div>
-      <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:25px; color:#00ff66; padding: 2px; text-align: center; background: transparent; font-weight: bold; text-shadow: 0 0 6px rgba(0,255,102,0.3); border:none;">
+    <div class="slim-big-card card-center">
+      <div class="title">現在の時刻</div>
+      <div class="current-time-display" id="currentTime">--:--:--</div>
     </div>
-    <div class="slim-card" id="timeCard">
-      <div class="title">現在時間</div>
-      <div id="currentTime" class="current-time-display">--:--:--</div>
+    <div class="slim-big-card card-center">
+      <div class="title">現在の走行距離 (km)</div>
+      <input type="number" id="distance" step="0.1" min="0" placeholder="0.0">
     </div>
-    <div id="convenienceBtnWrapper">
-      <button type="button" class="btn-convenience" id="convenienceBtn">🏪</button>
-    </div>
-  </div>
-
-  <div class="progress-section">
-    <div class="graph-scale-container" id="graphScale">
-      <div class="graph-container">
-        <div id="graphBar" class="graph-bar"></div>
-      </div>
+    <div class="convenience-btn-wrapper" id="convenienceBtnWrapper">
+      <button class="convenience-btn" id="convenienceBtn">🏪 周辺のコンビニ</button>
     </div>
   </div>
 
-  <div class="card full-width-pc-card" id="pcCard">
+  <div class="graph-area">
+    <div class="graph-container">
+      <div class="graph-bar" id="graphBar"></div>
+    </div>
+    <div class="graph-scale" id="graphScale">
+      <canvas id="elevationCanvas"></canvas>
+    </div>
+  </div>
+
+  <div class="card full-width-pc-card">
     <div class="pc-top-nav-row">
       <button class="pc-nav-btn" id="pcPrevBtn">◀ 前</button>
-      <div class="pc-distance-display" id="pcRemainDist">残り -- km<span class="ele-small">（獲得標高 --m）</span></div>
+      <div class="pc-distance-display" id="pcRemainDist">残り 0.0 km<span class="ele-small">獲得標高 --m</span></div>
       <button class="pc-nav-btn" id="pcNextBtn">次 ▶</button>
     </div>
     
     <div class="pc-bottom-title-row" id="pcTitleRow">
-      <div id="pcLabel" class="pc-title-label">次: PC-</div>
+      <div id="pcLabel" class="pc-title-label">次: ---</div>
     </div>
-    
-    <div class="speed-grid">
-      <div class="speed-cell"><div class="pc-speed-th">15km/h</div><div class="speed-td" id="pc_sp15">--:--</div></div>
-      <div class="speed-cell"><div class="pc-speed-th">16km/h</div><div class="speed-td" id="pc_sp16">--:--</div></div>
-      <div class="speed-cell"><div class="pc-speed-th">17km/h</div><div class="speed-td" id="pc_sp17">--:--</div></div>
-      <div class="speed-cell"><div class="pc-speed-th">18km/h</div><div class="speed-td" id="pc_sp18">--:--</div></div>
-      <div class="speed-cell"><div class="pc-speed-th">19km/h</div><div class="speed-td" id="pc_sp19">--:--</div></div>
-      <div class="speed-cell"><div class="pc-speed-th">20km/h</div><div class="speed-td" id="pc_sp20">--:--</div></div>
+
+    <div class="speed-table-container">
+      <table class="speed-table">
+        <thead>
+          <tr><th>15k</th><th>16k</th><th>17k</th><th>18k</th><th>19k</th><th>20k</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="speed-td" id="pc_sp15">--:--</td>
+            <td class="speed-td" id="pc_sp16">--:--</td>
+            <td class="speed-td" id="pc_sp17">--:--</td>
+            <td class="speed-td" id="pc_sp18">--:--</td>
+            <td class="speed-td" id="pc_sp19">--:--</td>
+            <td class="speed-td" id="pc_sp20">--:--</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
   <div class="card full-width-shop-card" id="shopCard">
     <div class="shop-top-nav-row">
       <button class="shop-nav-btn" id="shopPrevBtn">◀ 前</button>
-      <div class="shop-distance-display" id="shopRemainDist">残り -- km<span class="ele-small">（獲得標高 --m）</span></div>
+      <div class="shop-distance-display" id="shopRemainDist">残り -- km<span class="ele-small">獲得標高 --m</span></div>
       <button class="shop-nav-btn" id="shopNextBtn">次 ▶</button>
     </div>
     
@@ -221,26 +199,23 @@ PC2, 山城大橋, 68.0km"></textarea>
   </div>
 
   <div class="grid">
-    <div class="slim-card"><div class="title">経過時間</div><div class="value" id="elapsed">--</div></div>
-    <div class="slim-card"><div class="title">残り時間</div><div class="value" id="remainTime">--</div></div>
-    <div class="slim-card"><div class="title">グロス速度</div><div class="value" id="gross">--</div></div>
-    <div class="slim-card"><div class="title">残り距離</div><div class="value" id="remainDistance">--</div></div>
-    <div class="slim-card"><div class="title">完走予想</div><div class="value" id="finish">--</div></div>
-    <div class="slim-card"><div class="title">必要平均</div><div class="value" id="needSpeed">--</div></div>
+    <div class="slim-card"><div class=\"title\">経過時間</div><div class="value" id="elapsed">--</div></div>
+    <div class="slim-card"><div class=\"title\">残り時間</div><div class="value" id="remainTime">--</div></div>
+    <div class="slim-card"><div class=\"title\">グロス速度</div><div class="value" id="gross">--</div></div>
+    <div class="slim-card"><div class=\"title\">残り距離</div><div class="value" id="remainDistance">--</div></div>
+    <div class="slim-card"><div class=\"title\">完走予想</div><div class="value" id="finish">--</div></div>
+    <div class="slim-card"><div class=\"title\">必要平均</div><div class="value" id="needSpeed">--</div></div>
   </div>
 
-  <div class="slim-big-card">
-    <div class="title" style="font-size: 13px;">貯金時間</div>
+  <div class="card margin-top-sm" style="padding:12px 10px;">
+    <div class="title" style="text-align:center; font-size:13px; letter-spacing:1px;">借金 / 貯金ステータス</div>
     <div class="big-value" id="saving">--</div>
   </div>
 
   <div class="footer">
-    © 2026 Developed by HIRAI
+    BRM Pace Manager v3.1
   </div>
 
 </div>
-
-<script src="cordova.js"></script>
-<script src="js/script.js"></script>
 </body>
 </html>
