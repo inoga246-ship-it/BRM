@@ -206,14 +206,14 @@ pcTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDb
 shopRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); if (isShopUserNavigating) { isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; update(true); } });
 shopTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDblClickToggle.checked) return; if (globalShopList.length > 0 && shopDisplayIdx !== -1) { searchOnGoogleMap(globalShopList[shopDisplayIdx].name); } });
 
-// ★簡易工程高低図（SVG）を設定距離（START〜GOAL）に完全に引き伸ばしてマッピング描画する関数
+// ★【超重要修正版】設定距離(START=0% 〜 GOAL=100%)に完全に引き伸ばしてマッピング描写する関数
 function drawElevationProfile(targetDistance) {
   const container = document.getElementById("graphScale");
   if (!container || gpxTrackPoints.length === 0 || !targetDistance || targetDistance <= 0) return;
 
-  // 既存の背景用SVGを一度クリア
-  const oldSvg = container.querySelector(".elevation-profile-svg");
-  if (oldSvg) oldSvg.remove();
+  // 既存の背景用SVGを確実にクリア（古い青緑系のSVGゴミを完全除去）
+  const oldSvgs = container.querySelectorAll(".elevation-profile-svg");
+  oldSvgs.forEach(el => el.remove());
 
   // 1. GPXデータの実際の最大積算距離を取得
   const gpxTotalDist = gpxTrackPoints[gpxTrackPoints.length - 1].dist;
@@ -229,19 +229,19 @@ function drawElevationProfile(targetDistance) {
   if (maxEle === minEle) { maxEle += 100; minEle -= 100; }
   const eleRange = maxEle - minEle;
 
-  // 3. 設定されたBRM目標距離に対して、GPXデータを均等にマッピング
-  const samplingCount = 150;
+  // 3. 設定されたBRM目標距離(targetDistance)に対して、GPXデータを均等に100%分引き伸ばしてマッピング
+  const samplingCount = 120;
   let pathCoords = [];
   
   for (let i = 0; i <= samplingCount; i++) {
     const ratio = i / samplingCount;
-    // 設定距離上の現在の位置（例：200km × ratio）
+    // 設定上の現在の距離（例：START 0km から GOAL 200km までを均等割り）
     const currentSampleDist = targetDistance * ratio;
     
-    // 設定距離の位置に対応するGPX内の実際の距離を比率換算して探索
+    // 【左寄り解消のための最重要箇所】設定された比率から、GPXデータ側の「対応すべき実際の距離」を逆算
     const correspondingGpxDist = currentSampleDist * (gpxTotalDist / targetDistance);
 
-    // 最も近い距離のGPXポイントを探索
+    // GPXデータから、逆算した距離に一番近いポイントを探し出す
     let matchedPt = gpxTrackPoints[0];
     for (let j = 0; j < gpxTrackPoints.length; j++) {
       if (gpxTrackPoints[j].dist >= correspondingGpxDist) {
@@ -250,14 +250,14 @@ function drawElevationProfile(targetDistance) {
       }
     }
     
-    // 横軸のパーセンテージ（0〜100）
+    // 横軸の割合（0〜100%）
     const xPct = ratio * 100;
-    // 縦軸のパーセンテージ（上部に少し余裕をもたせ、下部を95%位置に合わせる）
+    // 縦軸の割合（上部に余白、下部を95%位置にする）
     const yPct = 95 - ((matchedPt.ele - minEle) / eleRange) * 75;
     pathCoords.push(`${xPct.toFixed(1)},${yPct.toFixed(1)}`);
   }
 
-  // 4. SVGエレメントを作成してスケールコンテナの最背面に挿入
+  // 4. 新しいSVGエレメントを作成
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("class", "elevation-profile-svg");
@@ -269,32 +269,29 @@ function drawElevationProfile(targetDistance) {
   svg.style.left = "0";
   svg.style.width = "100%";
   svg.style.height = "100%";
-  svg.style.zIndex = "1"; // 目盛り文字(z-index:5)の下、背景の上
+  svg.style.zIndex = "1"; // 文字(z-index:5)の背後に配置
   svg.style.pointerEvents = "none";
-  svg.style.opacity = "0.38"; // 視認性を上げるため透明度をアップ
+  svg.style.opacity = "0.42"; // 視認向上のためさらに明るく調整
 
-  // 山の形の下側（y=100%）を閉じるためのパスデータ
+  // 山の下側を閉じるためのパスデータ作成
   const fillPathData = `M 0,100 L ${pathCoords.join(" L ")} L 100,100 Z`;
   const path = document.createElementNS(svgNS, "path");
   path.setAttribute("d", fillPathData);
-  path.setAttribute("fill", "url(#elevationOrangeGrad)"); // オレンジグラデーションを適用
-  path.setAttribute("stroke", "#ff9f43"); // 稜線を鮮やかなオレンジに
+  path.setAttribute("fill", "url(#elevationOrangeGradForce)"); // オレンジグラデーションを強制指定
+  path.setAttribute("stroke", "#ff8a00"); // 稜線を鮮やかなオレンジに
   path.setAttribute("stroke-width", "1.8");
 
-  // グラデーション効果の定義（オレンジ系）
+  // グラデーション効果の定義（確実なネオンオレンジ〜ゴールド）
   const defs = document.createElementNS(svgNS, "defs");
   const grad = document.createElementNS(svgNS, "linearGradient");
-  grad.setAttribute("id", "elevationOrangeGrad");
+  grad.setAttribute("id", "elevationOrangeGradForce");
   grad.setAttribute("x1", "0%"); grad.setAttribute("y1", "0%");
   grad.setAttribute("x2", "0%"); grad.setAttribute("y2", "100%");
   
-  // 上部：ネオンオレンジ
   const stop1 = document.createElementNS(svgNS, "stop");
-  stop1.setAttribute("offset", "0%"); stop1.setAttribute("stop-color", "#ff6b6b");
-  // 中部：ゴールド・オレンジ
+  stop1.setAttribute("offset", "0%"); stop1.setAttribute("stop-color", "#ff4500"); // 鮮烈なオレンジレッド
   const stop2 = document.createElementNS(svgNS, "stop");
-  stop2.setAttribute("offset", "40%"); stop2.setAttribute("stop-color", "#ffb142");
-  // 下部：フェードアウト
+  stop2.setAttribute("offset", "50%"); stop2.setAttribute("stop-color", "#ffaa00"); // 鮮やかなゴールド
   const stop3 = document.createElementNS(svgNS, "stop");
   stop3.setAttribute("offset", "100%"); stop3.setAttribute("stop-color", "transparent");
 
@@ -683,7 +680,7 @@ function update(isDistanceOrInputChanged = false) {
   shopAutoTrackIdx = detectedShopIdx; if (isDistanceOrInputChanged || !isShopUserNavigating || shopDisplayIdx === -1 || shopDisplayIdx >= globalShopList.length) { if (isDistanceOrInputChanged) isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; }
 
   renderGraphScale(targetDistance); 
-  drawElevationProfile(targetDistance); // 各種更新時に高低図を再配置
+  drawElevationProfile(targetDistance); // 各種更新時に高低図を確実に同期
   updateDisplayOnly();
   
   if (!startTime.value) return; let start = new Date(startTime.value);
@@ -711,7 +708,7 @@ resetBtn.addEventListener("click", () => {
     localStorage.removeItem("convenienceBtnState"); localStorage.removeItem("gpxTrackPoints");
     gpxTrackPoints = [];
     startTime.value = ""; distance.value = ""; pcInput.value = ""; shopInput.value = ""; saveName.value = ""; tempDistanceValue = ""; graphBar.style.width = "0%";
-    const oldSvg = graphScale.querySelector(".elevation-profile-svg"); if (oldSvg) oldSvg.remove();
+    const oldSvgs = graphScale.querySelectorAll(".elevation-profile-svg"); oldSvgs.forEach(el => el.remove());
     ["elapsed", "remainTime", "gross", "remainDistance", "finish", "needSpeed", "saving"].forEach(id => document.getElementById(id).innerText = "--");
     document.getElementById("saving").className = "big-value"; isPcUserNavigating = false; isShopUserNavigating = false; menuContent.classList.remove("open");
     loadSavedListsDropdown(); savedListsSelect.selectedIndex = 0; shopToggle.checked = true; localStorage.setItem("shopToggleState", "true");
