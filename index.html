@@ -1,277 +1,25 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BRM Pace Manager</title>
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-/* カーボン調＆サイバーバックグラウンド */
-body {
-  background-color: #08090c;
-  background-image: \n    linear-gradient(30deg, #0f1115 12%, transparent 12.5%, transparent 87%, #0f1115 87.5%, #0f1115),\n    linear-gradient(150deg, #0f1115 12%, transparent 12.5%, transparent 87%, #0f1115 87.5%, #0f1115),\n    linear-gradient(30deg, #0f1115 12%, transparent 12.5%, transparent 87%, #0f1115 87.5%, #0f1115),\n    linear-gradient(150deg, #0f1115 12%, transparent 12.5%, transparent 87%, #0f1115 87.5%, #0f1115),\n    linear-gradient(90deg, #0f1115 10%, transparent 10.5%, transparent 90%, #0f1115 90.5%, #0f1115),\n    linear-gradient(90deg, #0b0c10 0%, #08090c 100%);
-  background-size: 8px 14px, 8px 14px, 8px 14px, 8px 14px, 8px 14px, 100% 100%;
-  color: #e0e6ed;
-  padding: 8px;
-  min-height: 100vh;
-}
-.app-container {
-  max-width: 480px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-/* サイバーネオンカード基調 */
-.card {
-  background: rgba(16, 20, 30, 0.85);
-  border: 1px solid rgba(0, 240, 255, 0.15);
-  border-radius: 12px;
-  padding: 10px 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 10px rgba(0, 240, 255, 0.02);
-  position: relative;
-  overflow: hidden;
-}
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.4), transparent);
-}
-.shop-card::before {
-  background: linear-gradient(90deg, transparent, rgba(255, 100, 200, 0.4), transparent);
-}
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-
-/* タイトル・ラベル */
-.label-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-.card-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #00f0ff;
-  font-weight: bold;
-  text-shadow: 0 0 4px rgba(0,240,255,0.3);
-}
-.shop-card .card-label {
-  color: #ff64c8;
-  text-shadow: 0 0 4px rgba(255,100,200,0.3);
-}
-.title-text {
-  font-size: 16px;
-  font-weight: 800;
-  color: #ffffff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* メイン数値表示 */
-.big-value {
-  font-size: 26px;
-  font-weight: 900;
-  font-family: 'Courier New', Courier, monospace;
-  color: #ffffff;
-  line-height: 1.1;
-  text-shadow: 0 0 6px rgba(255,255,255,0.2);
-}
-.unit { font-size: 13px; font-weight: normal; color: #8892b0; margin-left: 2px; }
-
-/* ステータスカラー */
-.green { color: #00ff66 !important; text-shadow: 0 0 8px rgba(0,255,102,0.4) !important; }
-.yellow { color: #ffcc00 !important; text-shadow: 0 0 8px rgba(255,204,0,0.4) !important; }
-.red { color: #ff3333 !important; text-shadow: 0 0 8px rgba(255,51,51,0.4) !important; }
-
-/* 距離・獲得標高表示のフォントサイズ＆レイアウト調整(15px指定・1行集約用) */
-.remain-dist-text {
-  font-size: 15px; /* 1px文字サイズをダウン */
-  font-weight: 700;
-  color: #e2e8f0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ele-small {
-  font-size: 12px;
-  color: #ffaa00;
-  margin-left: 6px;
-  font-weight: bold;
-}
-
-/* フォーム要素 */
-input, select, button, textarea {
-  background: rgba(30, 40, 55, 0.6);
-  border: 1px solid rgba(0, 240, 255, 0.2);
-  color: #ffffff;
-  border-radius: 6px;
-  padding: 6px;
-  font-size: 14px;
-  outline: none;
-  transition: all 0.2s;
-}
-input:focus, select:focus, textarea:focus {
-  border-color: #00f0ff;
-  box-shadow: 0 0 8px rgba(0,240,255,0.2);
-  background: rgba(30, 40, 55, 0.9);
-}
-input[type="number"] {
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: bold;
-  font-size: 18px;
-  text-align: center;
-}
-.btn {
-  font-weight: bold;
-  cursor: pointer;
-  background: linear-gradient(180deg, #1a2636, #101926);
-  border: 1px solid rgba(0,240,255,0.3);
-  display: flex; align-items: center; justify-content: center;
-}
-.btn:active { transform: scale(0.97); background: #0c121c; }
-.btn-nav { font-size: 18px; padding: 2px 10px; }
-
-/* 進捗バー & 高低図描画エリア */
-.graph-container {
-  height: 24px;
-  background: rgba(5, 8, 15, 0.9);
-  border: 1px solid rgba(0, 240, 255, 0.25);
-  border-radius: 6px;
-  position: relative;
-  margin: 18px 0 22px 0;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
-}
-.graph-bar {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, rgba(0,150,255,0.4), rgba(0,240,255,0.8));
-  border-radius: 4px;
-  position: absolute;
-  left: 0; top: 0;
-  box-shadow: 0 0 10px rgba(0,240,255,0.5);
-  transition: width 0.3s ease;
-  z-index: 2; /* 高低図(zIndex:1)の前面に透過オーバーレイ */
-}
-.graph-scale {
-  position: absolute;
-  width: 100%; height: 100%;
-  left: 0; top: 0;
-  pointer-events: none;
-  z-index: 3;
-}
-.scale-point {
-  position: absolute;
-  font-size: 9px;
-  font-weight: bold;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  padding: 1px 3px;
-  border-radius: 3px;
-}
-.neutral-type { color: #8892b0; top: -14px; }
-.pc-type {
-  color: #00f0ff;
-  background: rgba(0,20,40,0.8);
-  border: 1px solid rgba(0,240,255,0.4);
-}
-.pc-type-row0 { top: -16px; }
-.pc-type-row1 { top: -29px; }
-.shop-type {
-  color: #ff64c8;
-  background: rgba(40,10,30,0.8);
-  border: 1px solid rgba(255,100,200,0.4);
-}
-.shop-type-row0 { bottom: -16px; }
-.shop-type-row1 { bottom: -29px; }
-.active-pc { background: #00f0ff !important; color: #000000 !important; box-shadow: 0 0 8px #00f0ff; z-index: 10; }
-.active-shop { background: #ff64c8 !important; color: #000000 !important; box-shadow: 0 0 8px #ff64c8; z-index: 10; }
-
-/* 15k-20k スピードテーブル */
-.speed-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-.speed-table th, .speed-table td {
-  text-align: center; padding: 3px 2px; font-size: 11px; border: 1px solid rgba(255,255,255,0.05);
-}
-.speed-table th { color: #8892b0; font-weight: normal; background: rgba(255,255,255,0.02); }
-.speed-table td { font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 13px; }
-
-/* メニュー・モーダル等 */
-.menu-trigger { font-size: 20px; background: none; border: none; color: #00f0ff; cursor: pointer; padding: 0 4px; }
-.menu-content {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(5,8,15,0.95); z-index: 100;
-  display: none; padding: 16px; overflow-y: auto;
-}
-.menu-content.open { display: block; }
-.menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(0,240,255,0.2); padding-bottom: 8px; }
-.menu-close-btn { font-size: 24px; background: none; border: none; color: #ff3333; }
-.setting-section { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
-.setting-row { display: flex; flex-direction: column; gap: 4px; }
-.setting-row label { font-size: 12px; color: #8892b0; font-weight: bold; }
-textarea { width: 100%; height: 80px; font-family: monospace; font-size: 12px; resize: vertical; }
-.toggle-row { flex-direction: row; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-/* スイッチUI */
-.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #223044; transition: .3s; border-radius: 24px; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-input:checked + .slider { background-color: #00f0ff; }
-input:checked + .slider:before { transform: translateX(20px); }
-#shopToggle:checked + .slider { background-color: #ff64c8; }
-
-/* 3カラムトップグリッドと条件表示の最適化 */
-.top-row-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; transition: all 0.2s; }
-.top-row-grid.convenience-off { grid-template-columns: 1fr 1fr; }
-.convenience-btn {
-  background: linear-gradient(180deg, #2b1a3a, #1a0f26);
-  border: 1px solid rgba(200,100,255,0.4);
-  color: #dfbaff; font-size: 13px; font-weight: bold; height: 100%; border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-}
-.convenience-btn:active { background: #12091c; transform: scale(0.97); }
-
-/* ヘルプモーダル */
-.help-trigger { background: none; border: none; color: #8892b0; font-size: 12px; text-decoration: underline; cursor: pointer; }
-.modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
-.modal.open { display:flex; }
-.modal-body { background:#101520; border:1px solid #00f0ff; border-radius:12px; padding:16px; max-width:400px; width:100%; max-height:85vh; overflow-y:auto; }
-.modal-body h3 { color:#00f0ff; margin-bottom:12px; font-size:16px; border-bottom:1px solid rgba(0,240,255,0.2); padding-bottom:4px; }
-.modal-body p, .modal-body li { font-size:12px; color:#cbd5e1; line-height:1.6; margin-bottom:6px; }
-.modal-body ul { margin-left:16px; margin-bottom:12px; }
-.modal-close-btn { width:100%; margin-top:12px; padding:8px; background:#223044; border:none; border-radius:6px; color:#fff; font-weight:bold; }
-
-/* ユーティリティ */
-.hidden-file { display: none; }
-.shop-off .shop-type { display: none !important; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BRM Pace Manager</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="app-container">
   
   <div id="topRowGrid" class="top-row-grid">
-    <div class="card" style="padding:6px 10px;">
-      <div class="card-label" style="color:#8892b0;">現在時刻</div>
-      <div id="currentTime" class="big-value" style="font-size:20px; color:#cbd5e1;">--:--:--</div>
+    <div class="card p-dense">
+      <div class="card-label label-muted">現在時刻</div>
+      <div id="currentTime" class="big-value val-time">--:--:--</div>
     </div>
-    <div class="card" style="padding:6px 10px;">
-      <div class="card-label" style="color:#8892b0;">走行時間</div>
-      <div id="elapsed" class="big-value" style="font-size:20px; color:#cbd5e1;">--</div>
+    <div class="card p-dense">
+      <div class="card-label label-muted">走行時間</div>
+      <div id="elapsed" class="big-value val-time">--</div>
     </div>
-    <div id="convenienceBtnWrapper" style="display:block;">
+    <div id="convenienceBtnWrapper" class="conv-wrapper">
       <button id="convenienceBtn" class="btn convenience-btn">🏪 付近の<br>コンビニ</button>
     </div>
   </div>
@@ -281,14 +29,14 @@ input:checked + .slider:before { transform: translateX(20px); }
       <div class="card-label">DISTANCE MANAGER</div>
       <button id="menuTrigger" class="menu-trigger">⚙️</button>
     </div>
-    <div style="display: flex; align-items: center; gap: 10px; margin-top: 2px;">
-      <div style="flex: 1; position: relative;">
-        <input type="number" id="distance" inputmode="decimal" placeholder="0.0" style="width: 100%; padding-right: 34px;">
-        <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-weight: bold; color: #8892b0; font-size: 14px; pointer-events: none;">km</span>
+    <div class="input-main-row">
+      <div class="input-container">
+        <input type="number" id="distance" inputmode="decimal" placeholder="0.0">
+        <span class="input-unit">km</span>
       </div>
-      <div style="flex: 1; text-align: right;">
-        <div class="card-label" style="color:#8892b0; font-size:10px; margin-bottom:1px;">制限残り時間</div>
-        <div id="remainTime" class="big-value" style="font-size:22px;">--</div>
+      <div class="remain-time-box">
+        <div class="card-label label-muted label-xs">制限残り時間</div>
+        <div id="remainTime" class="big-value val-md">--</div>
       </div>
     </div>
   </div>
@@ -296,24 +44,24 @@ input:checked + .slider:before { transform: translateX(20px); }
   <div class="grid-2">
     <div class="card">
       <div class="card-label">グロス平均速度</div>
-      <div id="gross" class="big-value" style="margin-top:2px;">--<span class="unit">km/h</span></div>
+      <div id="gross" class="big-value">--<span class="unit">km/h</span></div>
     </div>
     <div class="card">
       <div class="card-label">借金 / 貯金</div>
-      <div id="saving" class="big-value" style="margin-top:2px;">--</div>
+      <div id="saving" class="big-value">--</div>
     </div>
   </div>
 
   <div class="card">
     <div id="pcTitleRow" class="label-row">
       <div id="pcLabel" class="title-text">次: PC1 ---</div>
-      <div style="display: flex; gap: 4px;">
+      <div class="nav-btn-group">
         <button id="pcPrevBtn" class="btn btn-nav">◀</button>
         <button id="pcNextBtn" class="btn btn-nav">▶</button>
       </div>
     </div>
     
-    <div id="pcRemainDist" class="remain-dist-text" style="margin: 4px 0 6px 0;">残り -- km <span class="ele-small">獲得標高 --m</span></div>
+    <div id="pcRemainDist" class="remain-dist-text">残り -- km <span class="ele-small">獲得標高 --m</span></div>
     
     <table class="speed-table">
       <thead>
@@ -340,44 +88,44 @@ input:checked + .slider:before { transform: translateX(20px); }
   <div id="shopCard" class="card shop-card">
     <div id="shopTitleRow" class="label-row">
       <div id="shopLabel" class="title-text">次休憩: ---</div>
-      <div style="display: flex; gap: 4px;">
-        <button id="shopPrevBtn" class="btn btn-nav" style="border-color:rgba(255,100,200,0.3);">◀</button>
-        <button id="shopNextBtn" class="btn btn-nav" style="border-color:rgba(255,100,200,0.3);">▶</button>
+      <div class="nav-btn-group">
+        <button id="shopPrevBtn" class="btn btn-nav btn-shop-nav">◀</button>
+        <button id="shopNextBtn" class="btn btn-nav btn-shop-nav">▶</button>
       </div>
     </div>
-    <div id="shopRemainDist" class="remain-dist-text" style="margin-top: 4px;">残り -- km <span class="ele-small">獲得標高 --m</span></div>
+    <div id="shopRemainDist" class="remain-dist-text">残り -- km <span class="ele-small">獲得標高 --m</span></div>
   </div>
 
   <div class="grid-3">
-    <div class="card" style="padding:6px 8px;">
-      <div class="card-label" style="font-size:9px; color:#8892b0;">終着残り距離</div>
-      <div id="remainDistance" class="big-value" style="font-size:15px; margin-top:2px;">--</div>
+    <div class="card p-small">
+      <div class="card-label label-xs label-muted">終着残り距離</div>
+      <div id="remainDistance" class="big-value val-sm">--</div>
     </div>
-    <div class="card" style="padding:6px 8px;">
-      <div class="card-label" style="font-size:9px; color:#8892b0;">必要最低速度</div>
-      <div id="needSpeed" class="big-value" style="font-size:15px; margin-top:2px;">--</div>
+    <div class="card p-small">
+      <div class="card-label label-xs label-muted">必要最低速度</div>
+      <div id="needSpeed" class="big-value val-sm">--</div>
     </div>
-    <div class="card" style="padding:6px 8px;">
-      <div class="card-label" style="font-size:9px; color:#8892b0;">ゴール予想時刻</div>
-      <div id="finish" class="big-value" style="font-size:14px; margin-top:2px; font-family:sans-serif; font-weight:bold;">--</div>
+    <div class="card p-small">
+      <div class="card-label label-xs label-muted">ゴール予想時刻</div>
+      <div id="finish" class="big-value val-sm font-sans">--</div>
     </div>
   </div>
   
-  <div style="text-align: center; margin-top: 4px;">
+  <div class="help-trigger-wrapper">
     <button id="helpTrigger" class="help-trigger">💡 クイック使い方ガイド</button>
   </div>
 </div>
 
 <div id="menuContent" class="menu-content">
   <div class="menu-header">
-    <h2 style="color: #00f0ff; font-size: 18px;">⚙️ システムコントロール</h2>
+    <h2 class="menu-title">⚙️ システムコントロール</h2>
     <button id="menuCloseBtn" class="menu-close-btn">×</button>
   </div>
   
   <div class="setting-section">
-    <div class="setting-row" style="background: rgba(0,240,255,0.05); padding: 10px; border-radius: 8px; border: 1px dashed rgba(0,240,255,0.3);">
-      <label style="color:#00f0ff; font-size:13px; display:flex; align-items:center; gap:6px;">🗺️ GPXルート・高低図同期</label>
-      <button id="gpxBtn" class="btn" style="width:100%; padding:8px; margin-top:6px; color:#00f0ff; border-color:#00f0ff;">GPXファイルを読み込む</button>
+    <div class="gpx-import-box">
+      <label class="gpx-label">🗺️ GPXルート・高低図同期</label>
+      <button id="gpxBtn" class="btn gpx-btn">GPXファイルを読み込む</button>
       <input type="file" id="gpxFileInput" class="hidden-file" accept=".gpx">
     </div>
 
@@ -428,27 +176,27 @@ input:checked + .slider:before { transform: translateX(20px); }
     </div>
   </div>
 
-  <div class="setting-section" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:14px;">
+  <div class="setting-section border-top">
     <div class="setting-row">
       <label>現在のリストをアプリ内に保存</label>
-      <div style="display:flex; gap:6px;">
-        <input type="text" id="saveName" placeholder="例: 2026淡路島ナイトライド" style="flex:1;">
-        <button id="saveBtn" class="btn" style="padding:0 12px; color:#00f0ff;">保存</button>
+      <div class="save-input-group">
+        <input type="text" id="saveName" placeholder="例: 2026淡路島ナイトライド">
+        <button id="saveBtn" class="btn btn-save">保存</button>
       </div>
     </div>
     <div class="setting-row">
       <label>保存済みリストの呼び出し・削除</label>
-      <div style="display:flex; gap:6px;">
-        <select id="savedListsSelect" style="flex:1;"></select>
-        <button id="deleteBtn" class="btn" style="color:#ff3333; border-color:rgba(255,51,51,0.3);">削除</button>
+      <div class="save-input-group">
+        <select id="savedListsSelect"></select>
+        <button id="deleteBtn" class="btn btn-delete">削除</button>
       </div>
     </div>
-    <div class="grid-2" style="margin-top:6px;">
-      <button id="exportBtn" class="btn" style="font-size:12px; padding:8px;">📥 バックアップ保存</button>
-      <button id="importBtn" class="btn" style="font-size:12px; padding:8px;">📤 バックアップ復元</button>
+    <div class="grid-2 mt-6">
+      <button id="exportBtn" class="btn btn-backup">📥 バックアップ保存</button>
+      <button id="importBtn" class="btn btn-backup">📤 バックアップ復元</button>
       <input type="file" id="importFileInput" class="hidden-file" accept=".json">
     </div>
-    <button id="resetBtn" class="btn" style="width:100%; margin-top:12px; padding:10px; background:linear-gradient(180deg, #421111, #260a0a); border-color:#ff3333; color:#ff9999;">🚨 システムの全初期化</button>
+    <button id="resetBtn" class="btn btn-reset">🚨 システムの全初期化</button>
   </div>
 </div>
 
