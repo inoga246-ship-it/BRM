@@ -206,7 +206,7 @@ pcTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDb
 shopRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); if (isShopUserNavigating) { isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; update(true); } });
 shopTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDblClickToggle.checked) return; if (globalShopList.length > 0 && shopDisplayIdx !== -1) { searchOnGoogleMap(globalShopList[shopDisplayIdx].name); } });
 
-// ★新機能：グラフの裏側の隙間に簡易工程高低図（SVG）を描画する関数
+// ★簡易工程高低図（SVG）を設定距離（START〜GOAL）に完全に引き伸ばしてマッピング描画する関数
 function drawElevationProfile(targetDistance) {
   const container = document.getElementById("graphScale");
   if (!container || gpxTrackPoints.length === 0 || !targetDistance || targetDistance <= 0) return;
@@ -215,7 +215,10 @@ function drawElevationProfile(targetDistance) {
   const oldSvg = container.querySelector(".elevation-profile-svg");
   if (oldSvg) oldSvg.remove();
 
-  // 標高の最大・最小値を取得
+  // 1. GPXデータの実際の最大積算距離を取得
+  const gpxTotalDist = gpxTrackPoints[gpxTrackPoints.length - 1].dist;
+
+  // 2. 標高の最大・最小値を取得
   let minEle = Infinity;
   let maxEle = -Infinity;
   gpxTrackPoints.forEach(pt => {
@@ -223,32 +226,38 @@ function drawElevationProfile(targetDistance) {
     if (pt.ele > maxEle) maxEle = pt.ele;
   });
 
-  // 平坦すぎる場合の安全処理
   if (maxEle === minEle) { maxEle += 100; minEle -= 100; }
   const eleRange = maxEle - minEle;
 
-  // トラックポイントの間引き処理（負荷軽減のため最大200ピクセルに縮小）
+  // 3. 設定されたBRM目標距離に対して、GPXデータを均等にマッピング
   const samplingCount = 150;
   let pathCoords = [];
   
   for (let i = 0; i <= samplingCount; i++) {
-    const currentSampleDist = (targetDistance * i) / samplingCount;
-    // 最も近い距離のポイントを探索
+    const ratio = i / samplingCount;
+    // 設定距離上の現在の位置（例：200km × ratio）
+    const currentSampleDist = targetDistance * ratio;
+    
+    // 設定距離の位置に対応するGPX内の実際の距離を比率換算して探索
+    const correspondingGpxDist = currentSampleDist * (gpxTotalDist / targetDistance);
+
+    // 最も近い距離のGPXポイントを探索
     let matchedPt = gpxTrackPoints[0];
     for (let j = 0; j < gpxTrackPoints.length; j++) {
-      if (gpxTrackPoints[j].dist >= currentSampleDist) {
+      if (gpxTrackPoints[j].dist >= correspondingGpxDist) {
         matchedPt = gpxTrackPoints[j];
         break;
       }
     }
     
-    const xPct = (matchedPt.dist / targetDistance) * 100;
-    // 上下に少しマージン（10%〜90%の範囲に収める）を持たせて反転（SVGは上が0のため）
-    const yPct = 95 - ((matchedPt.ele - minEle) / eleRange) * 80;
+    // 横軸のパーセンテージ（0〜100）
+    const xPct = ratio * 100;
+    // 縦軸のパーセンテージ（上部に少し余裕をもたせ、下部を95%位置に合わせる）
+    const yPct = 95 - ((matchedPt.ele - minEle) / eleRange) * 75;
     pathCoords.push(`${xPct.toFixed(1)},${yPct.toFixed(1)}`);
   }
 
-  // SVGエレメントを作成してスケールコンテナの最背面に挿入
+  // 4. SVGエレメントを作成してスケールコンテナの最背面に挿入
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("class", "elevation-profile-svg");
@@ -260,32 +269,38 @@ function drawElevationProfile(targetDistance) {
   svg.style.left = "0";
   svg.style.width = "100%";
   svg.style.height = "100%";
-  svg.style.zIndex = "1"; // スケールや文字より下、背景より上
+  svg.style.zIndex = "1"; // 目盛り文字(z-index:5)の下、背景の上
   svg.style.pointerEvents = "none";
-  svg.style.opacity = "0.22"; // 邪魔にならないように半透明化
+  svg.style.opacity = "0.38"; // 視認性を上げるため透明度をアップ
 
-  // 面を塗りつぶすためのパスデータ（山の形の下側を閉じる）
+  // 山の形の下側（y=100%）を閉じるためのパスデータ
   const fillPathData = `M 0,100 L ${pathCoords.join(" L ")} L 100,100 Z`;
   const path = document.createElementNS(svgNS, "path");
   path.setAttribute("d", fillPathData);
-  path.setAttribute("fill", "url(#elevationGrad)");
-  path.setAttribute("stroke", "#38ef7d"); // 頂点ラインにネオングリーン
-  path.setAttribute("stroke-width", "1.5");
+  path.setAttribute("fill", "url(#elevationOrangeGrad)"); // オレンジグラデーションを適用
+  path.setAttribute("stroke", "#ff9f43"); // 稜線を鮮やかなオレンジに
+  path.setAttribute("stroke-width", "1.8");
 
-  // グラデーション効果の定義
+  // グラデーション効果の定義（オレンジ系）
   const defs = document.createElementNS(svgNS, "defs");
   const grad = document.createElementNS(svgNS, "linearGradient");
-  grad.setAttribute("id", "elevationGrad");
+  grad.setAttribute("id", "elevationOrangeGrad");
   grad.setAttribute("x1", "0%"); grad.setAttribute("y1", "0%");
   grad.setAttribute("x2", "0%"); grad.setAttribute("y2", "100%");
   
+  // 上部：ネオンオレンジ
   const stop1 = document.createElementNS(svgNS, "stop");
-  stop1.setAttribute("offset", "0%"); stop1.setAttribute("stop-color", "#11998e");
+  stop1.setAttribute("offset", "0%"); stop1.setAttribute("stop-color", "#ff6b6b");
+  // 中部：ゴールド・オレンジ
   const stop2 = document.createElementNS(svgNS, "stop");
-  stop2.setAttribute("offset", "100%"); stop2.setAttribute("stop-color", "transparent");
+  stop2.setAttribute("offset", "40%"); stop2.setAttribute("stop-color", "#ffb142");
+  // 下部：フェードアウト
+  const stop3 = document.createElementNS(svgNS, "stop");
+  stop3.setAttribute("offset", "100%"); stop3.setAttribute("stop-color", "transparent");
 
   grad.appendChild(stop1);
   grad.appendChild(stop2);
+  grad.appendChild(stop3);
   defs.appendChild(grad);
   svg.appendChild(defs);
   svg.appendChild(path);
