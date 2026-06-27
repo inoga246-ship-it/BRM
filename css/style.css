@@ -720,3 +720,20 @@ body.shop-off .big-value { font-size: 36px; }
 body.shop-off .ele-small {
   font-size: 17px !important;
 }
+/* PC・ショップカード内の距離表示（1px小さく調整） */
+.pc-distance-display, 
+.shop-distance-display {
+  font-size: 21px !important; /* 元の22pxから21pxへ1px縮小 */
+}
+
+/* ショップ非表示（OFF）時の拡大用スタイルも1px縮小調整 */
+body.shop-off .pc-distance-display {
+  font-size: 27px !important; /* 元の28pxから27pxへ1px縮小 */
+}
+
+/* 獲得標高テキストの微調整（括弧を消したため少しだけ余白を持たせる） */
+.ele-small {
+  margin-left: 6px;
+  font-size: 13px;
+  opacity: 0.85;
+}
