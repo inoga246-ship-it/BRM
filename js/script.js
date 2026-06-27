@@ -206,6 +206,10 @@ gpxFileInput.addEventListener("change", (e) => {
       let totalDist = 0;
       let totalGain = 0;
       
+      // 標高ノイズ除去用のしきい値設定フィルター（1.5メートル以上の変化でカウント）
+      const ELE_THRESHOLD = 1.5; 
+      let lastCountedEle = null; // 最後に獲得標高として基準にした標高値
+      
       function calcDistance(lat1, lon1, lat2, lon2) {
         const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -220,12 +224,22 @@ gpxFileInput.addEventListener("change", (e) => {
         const eleEl = trkpts[i].getElementsByTagName("ele")[0];
         const ele = eleEl ? parseFloat(eleEl.textContent) : 0;
         
-        if (i > 0) {
+        if (i === 0) {
+          lastCountedEle = ele;
+        } else {
           const prev = gpxTrackPoints[i - 1];
           const d = calcDistance(prev.lat, prev.lon, lat, lon);
           totalDist += d;
-          const dEle = ele - prev.ele;
-          if (dEle > 0) totalGain += dEle;
+          
+          // 獲得標高のしきい値判定フィルター処理
+          const dEle = ele - lastCountedEle;
+          if (dEle >= ELE_THRESHOLD) {
+            totalGain += dEle;
+            lastCountedEle = ele; // 基準点を更新
+          } else if (dEle <= -ELE_THRESHOLD) {
+            // 下り方向にも一定以上下がったら基準点を追従させる（平坦路のノイズ蓄積を防ぐため）
+            lastCountedEle = ele;
+          }
         }
         gpxTrackPoints.push({ lat, lon, ele, dist: totalDist, gain: totalGain });
       }
@@ -302,7 +316,7 @@ gpxFileInput.addEventListener("change", (e) => {
       isShopUserNavigating = false;
       persistInputs();
       update(true);
-      alert(`GPXデータの解析に成功しました！\n総距離: ${totalDist.toFixed(1)}km\n総獲得標高: ${Math.round(totalGain)}m\nチェックポイントを自動登録しました。`);
+      alert(`GPXデータの解析に成功しました！(フィルター適用済)\n総距離: ${totalDist.toFixed(1)}km\n総獲得標高: ${Math.round(totalGain)}m\nチェックポイントを自動登録しました。`);
     } catch(err) {
       alert("GPXファイルの解析中にエラーが発生しました。有効なファイルか確認してください。");
     } finally {
