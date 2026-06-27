@@ -41,10 +41,6 @@ const exportBtn = document.getElementById("exportBtn");
 const importBtn = document.getElementById("importBtn");
 const importFileInput = document.getElementById("importFileInput");
 
-// GPX関連の要素
-const gpxBtn = document.getElementById("gpxBtn");
-const gpxFileInput = document.getElementById("gpxFileInput");
-
 const circleNumbers = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫", "⑬", "⑭", "⑮", "⑯", "⑰", "⑱", "⑲", "⑳"];
 
 const defaultPCList = "PC1, 御幸橋, 24.9km\nPC2, 山城大橋, 68.0km";
@@ -52,7 +48,6 @@ const defaultShopList = "ローソン 八幡南店, 32.1\nセブン 宇治川店
 
 let globalPCList = [];   
 let globalShopList = []; 
-let gpxTrackPoints = []; // GPXから解析した全トラックポイント [{lat, lon, ele, dist, gain}]
 
 let pcDisplayIdx = -1; 
 let pcAutoTrackIdx = -1;        
@@ -78,12 +73,6 @@ brm.value = localStorage.getItem("brm") || "200,13.5";
 distance.value = localStorage.getItem("distance") || "";
 pcInput.value = localStorage.getItem("pcList3") || defaultPCList;
 shopInput.value = localStorage.getItem("shopList3") || defaultShopList;
-
-// GPXトラックデータの復元
-try {
-  const cachedGpx = localStorage.getItem("gpxTrackPoints");
-  if (cachedGpx) gpxTrackPoints = JSON.parse(cachedGpx);
-} catch(e) { gpxTrackPoints = []; }
 
 const savedToggleState = localStorage.getItem("shopToggleState");
 if (savedToggleState === "false") {
@@ -174,7 +163,7 @@ convenienceBtn.addEventListener("click", () => {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (pos) => { searchOnGoogleMapNearby("コンビニ", pos.coords.latitude, pos.coords.longitude); },
-      () => { searchOnGoogleMap("コンビニ"); },
+      () => { searchOnGoogleMap("コンビニ"); }, 
       { timeout: 5000, maximumAge: 60000 }
     );
   } else {
@@ -186,218 +175,6 @@ pcRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); if (isPc
 pcTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDblClickToggle.checked) return; if (globalPCList.length > 0 && pcDisplayIdx !== -1) { const item = globalPCList[pcDisplayIdx]; searchOnGoogleMap(item.id + " " + item.name); } });
 shopRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); if (isShopUserNavigating) { isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; update(true); } });
 shopTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDblClickToggle.checked) return; if (globalShopList.length > 0 && shopDisplayIdx !== -1) { searchOnGoogleMap(globalShopList[shopDisplayIdx].name); } });
-
-// --- 🌏 GPXパーサー & 高低図背景描画システム ---
-gpxBtn.addEventListener("click", () => gpxFileInput.click());
-gpxFileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(evt.target.result, "text/xml");
-      
-      const trkpts = xmlDoc.getElementsByTagName("trkpt");
-      if (trkpts.length === 0) { alert("GPXファイル内にトラックデータ(ルート線)が見つかりませんでした。"); return; }
-      
-      gpxTrackPoints = [];
-      let totalDist = 0;
-      let totalGain = 0;
-      
-      const ELE_THRESHOLD = 1.5; 
-      let lastCountedEle = null; 
-      
-      function calcDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      }
-      
-      for (let i = 0; i < trkpts.length; i++) {
-        const lat = parseFloat(trkpts[i].getAttribute("lat"));
-        const lon = parseFloat(trkpts[i].getAttribute("lon"));
-        const eleEl = trkpts[i].getElementsByTagName("ele")[0];
-        const ele = eleEl ? parseFloat(eleEl.textContent) : 0;
-        
-        if (i === 0) {
-          lastCountedEle = ele;
-        } else {
-          const prev = gpxTrackPoints[i - 1];
-          const d = calcDistance(prev.lat, prev.lon, lat, lon);
-          totalDist += d;
-          
-          const dEle = ele - lastCountedEle;
-          if (dEle >= ELE_THRESHOLD) {
-            totalGain += dEle;
-            lastCountedEle = ele; 
-          } else if (dEle <= -ELE_THRESHOLD) {
-            lastCountedEle = ele;
-          }
-        }
-        gpxTrackPoints.push({ lat, lon, ele, dist: totalDist, gain: totalGain });
-      }
-      localStorage.setItem("gpxTrackPoints", JSON.stringify(gpxTrackPoints));
-
-      // ウェイポイント(WPT)の抽出とプレフィックス二重化対策
-      const wpts = xmlDoc.getElementsByTagName("wpt");
-      let pcTextLines = [];
-      let shopTextLines = [];
-      
-      for (let i = 0; i < wpts.length; i++) {
-        const wLat = parseFloat(wpts[i].getAttribute("lat"));
-        const wLon = parseFloat(wpts[i].getAttribute("lon"));
-        const nameEl = wpts[i].getElementsByTagName("name")[0];
-        const name = nameEl ? nameEl.textContent.trim() : `Point ${i+1}`;
-        const nameLower = name.toLowerCase();
-        
-        let minDist = Infinity;
-        let matchedPoint = gpxTrackPoints[0];
-        for (let j = 0; j < gpxTrackPoints.length; j++) {
-          const d = calcDistance(wLat, wLon, gpxTrackPoints[j].lat, gpxTrackPoints[j].lon);
-          if (d < minDist) { minDist = d; matchedPoint = gpxTrackPoints[j]; }
-        }
-        
-        const ptDistStr = matchedPoint.dist.toFixed(1);
-        
-        if (nameLower.includes("pc") || nameLower.includes("check") || nameLower.includes("チェック") || nameLower.includes("start") || nameLower.includes("goal") || nameLower.includes("finish") || nameLower.includes("通過")) {
-          let cleanName = name.replace(/^(pc\d*|通過チェック[①-⑳\d]*|start|goal|finish|チェック)\s*[\s ,，、_\-]/i, "").trim();
-          cleanName = cleanName.replace(/^(通過チェック[①-⑳\d]*|ｐｃ\d*)/i, "").trim();
-          
-          let label = "PC";
-          if (nameLower.includes("start")) label = "START";
-          else if (nameLower.includes("goal") || nameLower.includes("finish")) label = "GOAL";
-          else if (nameLower.includes("通過") || nameLower.includes("check")) label = "通過チェック";
-          
-          pcTextLines.push({ d: matchedPoint.dist, text: `${label}, ${cleanName}, ${ptDistStr}km` });
-        } else {
-          shopTextLines.push({ d: matchedPoint.dist, text: `${name}, ${ptDistStr}` });
-        }
-      }
-      
-      pcTextLines.sort((a,b) => a.d - b.d);
-      shopTextLines.sort((a,b) => a.d - b.d);
-      
-      let pcIdx = 1;
-      let chkIdx = 1;
-      const formattedPcLines = pcTextLines.map(item => {
-        let t = item.text;
-        if (t.startsWith("PC,")) { t = t.replace("PC,", `PC${pcIdx},`); pcIdx++; }
-        else if (t.startsWith("通過チェック,")) { t = t.replace("通過チェック,", `通過チェック${circleNumbers[chkIdx-1]||chkIdx},`); chkIdx++; }
-        return t;
-      });
-
-      if (formattedPcLines.length > 0) pcInput.value = formattedPcLines.join("\n");
-      if (shopTextLines.length > 0) shopInput.value = shopTextLines.map(item => item.text).join("\n");
-      
-      const finalRouteDist = Math.ceil(totalDist);
-      if (finalRouteDist > 50) {
-        let matchedBrmVal = "200,13.5";
-        if (finalRouteDist > 550) matchedBrmVal = "600,40";
-        else if (finalRouteDist > 350) matchedBrmVal = "400,27";
-        else if (finalRouteDist > 250) matchedBrmVal = "300,20";
-        brm.value = matchedBrmVal;
-      }
-      
-      isPcUserNavigating = false;
-      isShopUserNavigating = false;
-      persistInputs();
-      update(true);
-      alert(`GPXデータの解析に成功しました！(フィルター適用済)\n総距離: ${totalDist.toFixed(1)}km\n総獲得標高: ${Math.round(totalGain)}m\nチェックポイントを自動登録しました。`);
-    } catch(err) {
-      alert("GPXファイルの解析中にエラーが発生しました。有効なファイルか確認してください。");
-    } finally {
-      gpxFileInput.value = "";
-    }
-  };
-  reader.readAsText(file);
-});
-
-// グラフ背景にSVGの高低図を描画する関数
-function drawElevationProfile(targetDistance) {
-  let svgEl = document.getElementById("elevationSvg");
-  
-  // なければgraphBarの親要素(プログレスバーコンテナ)内に作成
-  if (!svgEl && graphBar && graphBar.parentElement) {
-    svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svgEl.id = "elevationSvg";
-    // グラフ表示位置のレイアウト崩れを防ぐためのCSSスタイル
-    svgEl.style.position = "absolute";
-    svgEl.style.left = "0";
-    svgEl.style.top = "0";
-    svgEl.style.width = "100%";
-    svgEl.style.height = "100%";
-    svgEl.style.pointerEvents = "none";
-    svgEl.style.zIndex = "1"; // 青いバーの後ろ、グレーの背景の前に差し込む
-    graphBar.style.zIndex = "2"; // 進行中の光るバーを前面にする
-    graphBar.parentElement.style.position = "relative";
-    graphBar.parentElement.insertBefore(svgEl, graphBar);
-  }
-  
-  if (!svgEl) return;
-  svgEl.innerHTML = ""; // 初期化
-  
-  if (gpxTrackPoints.length === 0) return;
-  
-  // 最大・最小標高を取得
-  let maxEle = -Infinity;
-  let minEle = Infinity;
-  gpxTrackPoints.forEach(p => {
-    if (p.dist <= targetDistance) {
-      if (p.ele > maxEle) maxEle = p.ele;
-      if (p.ele < minEle) minEle = p.ele;
-    }
-  });
-  
-  // 平坦すぎるとき用の処理
-  if (maxEle === minEle) { maxEle += 10; minEle -= 10; }
-  const eleDiff = maxEle - minEle;
-  
-  // SVG内に滑らかな起伏パスを生成
-  // 100x100の仮想座標系でポリゴンを作成
-  let pointsStr = "0,100 "; // 左下スタート
-  
-  // 間引きしながら等間隔にプロット点を生成
-  const step = Math.max(1, Math.floor(gpxTrackPoints.length / 150));
-  for (let i = 0; i < gpxTrackPoints.length; i += step) {
-    const pt = gpxTrackPoints[i];
-    if (pt.dist > targetDistance) break;
-    
-    const x = (pt.dist / targetDistance) * 100;
-    // 下端に少し余白をもたせる(100 - 標高比率)
-    const y = 100 - ((pt.ele - minEle) / eleDiff) * 85; 
-    pointsStr += `${x},${y} `;
-  }
-  
-  // 右下で閉じる
-  const finalPt = gpxTrackPoints[gpxTrackPoints.length - 1];
-  const finalX = Math.min(100, (finalPt.dist / targetDistance) * 100);
-  pointsStr += `${finalX},100`;
-  
-  const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-  polygon.setAttribute("points", pointsStr);
-  polygon.setAttribute("viewBox", "0 0 100 100");
-  polygon.setAttribute("preserveAspectRatio", "none");
-  // サイバーデザインに調和する、うっすらとした半透明の山吹色〜オレンジ調のグラデーション
-  polygon.setAttribute("fill", "rgba(255, 165, 0, 0.15)"); 
-  polygon.setAttribute("stroke", "rgba(255, 165, 0, 0.4)");
-  polygon.setAttribute("stroke-width", "0.5");
-  
-  svgEl.setAttribute("viewBox", "0 0 100 100");
-  svgEl.setAttribute("preserveAspectRatio", "none");
-  svgEl.appendChild(polygon);
-}
-
-function getGpxGainAtDistance(dist) {
-  if (gpxTrackPoints.length === 0) return 0;
-  if (dist <= 0) return 0;
-  for (let i = 0; i < gpxTrackPoints.length; i++) {
-    if (gpxTrackPoints[i].dist >= dist) return gpxTrackPoints[i].gain;
-  }
-  return gpxTrackPoints[gpxTrackPoints.length - 1].gain;
-}
 
 function loadSavedListsDropdown() {
   const savedData = localStorage.getItem("customBRMDataSets3");
@@ -438,7 +215,7 @@ deleteBtn.addEventListener("click", () => {
   }
 });
 
-const BACKUP_KEYS = ["startTime", "brm", "distance", "pcList3", "shopList3", "customBRMDataSets3", "shopToggleState", "mapDblClickState", "convenienceBtnState", "gpxTrackPoints"];
+const BACKUP_KEYS = ["startTime", "brm", "distance", "pcList3", "shopList3", "customBRMDataSets3", "shopToggleState", "mapDblClickState", "convenienceBtnState"];
 
 exportBtn.addEventListener("click", () => {
   const backupData = {};
@@ -472,11 +249,6 @@ importFileInput.addEventListener("change", (e) => {
       distance.value = localStorage.getItem("distance") || "";
       pcInput.value = localStorage.getItem("pcList3") || "";
       shopInput.value = localStorage.getItem("shopList3") || "";
-
-      try {
-        const cachedGpx = localStorage.getItem("gpxTrackPoints");
-        gpxTrackPoints = cachedGpx ? JSON.parse(cachedGpx) : [];
-      } catch(e) { gpxTrackPoints = []; }
 
       const toggleState = localStorage.getItem("shopToggleState");
       shopToggle.checked = toggleState !== "false";
@@ -519,46 +291,26 @@ function updateDisplayOnly() {
   const currentDist = parseFloat(distance.value) || 0;
   let startReady = false; let start = null; if (startTime.value) { start = new Date(startTime.value); if (!isNaN(start.getTime())) startReady = true; }
 
-  const currentGain = getGpxGainAtDistance(currentDist);
-
-  // 1行配置、フォントサイズ調整(15px)、カッコ削除のレイアウト調整を反映
   if (globalPCList.length > 0 && pcDisplayIdx !== -1) {
     const selectedPC = globalPCList[pcDisplayIdx]; const diffDist = selectedPC.dist - currentDist;
     let prefix = (pcDisplayIdx === pcAutoTrackIdx) ? "次: " : (pcDisplayIdx < pcAutoTrackIdx ? "通過: " : "先々: ");
     document.getElementById("pcLabel").innerText = prefix + selectedPC.id + " " + selectedPC.name + "（" + selectedPC.dist.toFixed(1) + "km）";
-    
-    let gainStr = "--m";
-    if (gpxTrackPoints.length > 0) {
-      const pcGain = getGpxGainAtDistance(selectedPC.dist);
-      const remGain = Math.max(0, Math.round(pcGain - currentGain));
-      gainStr = remGain + "m";
-    }
-    pcRemainDist.style.fontSize = "15px"; // 1px小さく変更
-    pcRemainDist.innerHTML = diffDist >= 0 ? `残り ${diffDist.toFixed(1)} km <span class="ele-small">獲得標高 ${gainStr}</span>` : `通過後 ${Math.abs(diffDist).toFixed(1)} km <span class="ele-small">獲得標高 --m</span>`;
-    
+    pcRemainDist.innerText = diffDist >= 0 ? "残り " + diffDist.toFixed(1) + " km" : "通過後 " + Math.abs(diffDist).toFixed(1) + " km";
     [15, 16, 17, 18, 19, 20].forEach(speed => {
       const el = document.getElementById("pc_sp" + speed);
       if (startReady) { el.innerText = formatArrivalDate(new Date(start.getTime() + (selectedPC.dist / speed) * 3600000), startTime.value); } else { el.innerText = "--:--"; }
     });
   } else {
-    document.getElementById("pcLabel").innerText = "次: ゴール"; pcRemainDist.innerHTML = '残り 0.0 km <span class="ele-small">獲得標高 --m</span>'; ["15","16","17","18","19","20"].forEach(s => document.getElementById("pc_sp" + s).innerText = "--:--");
+    document.getElementById("pcLabel").innerText = "次: ゴール"; pcRemainDist.innerText = "残り 0.0 km"; ["15","16","17","18","19","20"].forEach(s => document.getElementById("pc_sp" + s).innerText = "--:--");
   }
 
   if (shopToggle.checked && globalShopList.length > 0 && shopDisplayIdx !== -1) {
     const selectedShop = globalShopList[shopDisplayIdx]; const diffDist = selectedShop.dist - currentDist;
     let prefix = (shopDisplayIdx === shopAutoTrackIdx) ? "次休憩: " : (shopDisplayIdx < shopAutoTrackIdx ? "通過休憩: " : "先々休憩: ");
     document.getElementById("shopLabel").innerText = prefix + selectedShop.id + " " + selectedShop.name + "（" + selectedShop.dist.toFixed(1) + "km）";
-    
-    let gainStr = "--m";
-    if (gpxTrackPoints.length > 0) {
-      const shopGain = getGpxGainAtDistance(selectedShop.dist);
-      const remGain = Math.max(0, Math.round(shopGain - currentGain));
-      gainStr = remGain + "m";
-    }
-    shopRemainDist.style.fontSize = "15px"; // 1px小さく変更
-    shopRemainDist.innerHTML = diffDist >= 0 ? `残り ${diffDist.toFixed(1)} km <span class="ele-small">獲得標高 ${gainStr}</span>` : `通過後 ${Math.abs(diffDist).toFixed(1)} km <span class="ele-small">獲得標高 --m</span>`;
+    shopRemainDist.innerText = diffDist >= 0 ? "残り " + diffDist.toFixed(1) + " km" : "通過後 " + Math.abs(diffDist).toFixed(1) + " km";
   } else {
-    document.getElementById("shopLabel").innerText = "次休憩: 登録なし"; shopRemainDist.innerHTML = '残り -- km <span class="ele-small">獲得標高 --m</span>';
+    document.getElementById("shopLabel").innerText = "次休憩: 登録なし"; shopRemainDist.innerText = "残り -- km";
   }
 }
 
@@ -630,9 +382,7 @@ function update(isDistanceOrInputChanged = false) {
   for (let i = 0; i < globalShopList.length; i++) { if (globalShopList[i].dist > currentDist) { detectedShopIdx = i; break; } }
   shopAutoTrackIdx = detectedShopIdx; if (isDistanceOrInputChanged || !isShopUserNavigating || shopDisplayIdx === -1 || shopDisplayIdx >= globalShopList.length) { if (isDistanceOrInputChanged) isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; }
 
-  renderGraphScale(targetDistance); 
-  drawElevationProfile(targetDistance); // 高低図をグラフの背景に描画
-  updateDisplayOnly();
+  renderGraphScale(targetDistance); updateDisplayOnly();
   if (!startTime.value) return; let start = new Date(startTime.value);
   if (now < start) {
     document.getElementById("elapsed").innerText = "スタート前"; document.getElementById("remainTime").innerText = "スタート前"; document.getElementById("gross").innerText = "--";
@@ -654,9 +404,7 @@ function update(isDistanceOrInputChanged = false) {
 resetBtn.addEventListener("click", () => {
   if (confirm("すべての設定、リスト、走行データをリセットしますか？")) {
     localStorage.removeItem("startTime"); localStorage.removeItem("distance"); localStorage.removeItem("pcList3"); localStorage.removeItem("shopList3");
-    localStorage.removeItem("convenienceBtnState"); localStorage.removeItem("gpxTrackPoints");
-    gpxTrackPoints = [];
-    const oldSvg = document.getElementById("elevationSvg"); if (oldSvg) oldSvg.remove();
+    localStorage.removeItem("convenienceBtnState"); 
     startTime.value = ""; distance.value = ""; pcInput.value = ""; shopInput.value = ""; saveName.value = ""; tempDistanceValue = ""; graphBar.style.width = "0%";
     ["elapsed", "remainTime", "gross", "remainDistance", "finish", "needSpeed", "saving"].forEach(id => document.getElementById(id).innerText = "--");
     document.getElementById("saving").className = "big-value"; isPcUserNavigating = false; isShopUserNavigating = false; menuContent.classList.remove("open");
