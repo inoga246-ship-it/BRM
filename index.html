@@ -181,17 +181,20 @@ PC2, 山城大橋, 68.0km"></textarea>
 
   <div class="progress-section">
     <div class="graph-scale-container" id="graphScale">
-      <canvas id="elevationCanvas"></canvas>
       <div class="graph-container">
         <div id="graphBar" class="graph-bar"></div>
       </div>
     </div>
   </div>
 
+  <div class="elevation-section" id="elevationSection" style="display:none;">
+    <svg id="elevationSvg" viewBox="0 0 1000 100" preserveAspectRatio="none"></svg>
+  </div>
+
   <div class="card full-width-pc-card" id="pcCard">
     <div class="pc-top-nav-row">
       <button class="pc-nav-btn" id="pcPrevBtn">◀ 前</button>
-      <div class="pc-distance-display" id="pcRemainDist">残り -- km<span class="ele-small">獲得標高 --m</span></div>
+      <div class="pc-distance-display" id="pcRemainDist">残り -- km<span class="ele-small">（獲得標高 --m）</span></div>
       <button class="pc-nav-btn" id="pcNextBtn">次 ▶</button>
     </div>
     
@@ -212,7 +215,7 @@ PC2, 山城大橋, 68.0km"></textarea>
   <div class="card full-width-shop-card" id="shopCard">
     <div class="shop-top-nav-row">
       <button class="shop-nav-btn" id="shopPrevBtn">◀ 前</button>
-      <div class="shop-distance-display" id="shopRemainDist">残り -- km<span class="ele-small">獲得標高 --m</span></div>
+      <div class="shop-distance-display" id="shopRemainDist">残り -- km<span class="ele-small">（獲得標高 --m）</span></div>
       <button class="shop-nav-btn" id="shopNextBtn">次 ▶</button>
     </div>
     
