@@ -127,7 +127,7 @@ PC2, 山城大橋, 68.0km"></textarea>
       <div class="modal-body">
         <h4>1. 事前準備 (☰ メメニュー)</h4>
         <ul>
-          <li><strong>🗺️ GPX読み込み:</strong> Ride with RWGPS等で作ったGPX（チェックポイント情報付き）を読み込ませると、①公式リスト・距離・獲得標高がすべて自動計算されて一括セットされます。</li>
+          <li><strong>🗺️ GPX読み込み:</strong> Ride with RWGPS等で作ったGPX（チェックポイント情報付き）を読み込ませると、①公式リスト・距離・獲得標高がすべて自動計算されて一括セットされます。詳しい使い方は次の「2. GPX読み込みについて」をご覧ください。</li>
           <li><strong>BRM設定:</strong> 距離と制限時間枠を選びます。</li>
           <li><strong>START日時:</strong> 出発時刻を正確に入力します。</li>
           <li><strong>① 公式PCリスト:</strong> 「PC1, 地点名, 距離km」で改行入力。</li>
@@ -135,26 +135,49 @@ PC2, 山城大橋, 68.0km"></textarea>
           <li><strong>🏪検索ボタン設定:</strong> 最上段のワンタップコンビニ検索ボタンのオンオフを設定できます。</li>
         </ul>
 
-        <h4>2. 基本操作</h4>
+        <h4>2. GPX読み込みについて</h4>
+        <ul>
+          <li><strong>対応ファイル:</strong> 拡張子<strong>.gpx</strong>のファイルに対応しています（RWGPS、Ride with GPS、Garminコネクト等からエクスポートしたファイルなど）。</li>
+          <li><strong>読み込み方法:</strong> ☰メニュー内の「🗺️ GPX読み込み」ボタンをタップし、端末に保存されているGPXファイルを選択します。</li>
+          <li><strong>自動で取得される情報:</strong>
+            <ul>
+              <li>ルート全体の距離・獲得標高（トラック線=trkptデータから自動計算）</li>
+              <li>各PC（チェックポイント）・休憩スポットの位置と距離（ウェイポイント=wptデータから自動計算）</li>
+              <li>START/GOAL/進捗バー背面の<strong>簡易工程図（標高プロファイル）</strong>の描画データ</li>
+            </ul>
+          </li>
+          <li><strong>ウェイポイントの名前の付け方:</strong> GPX内のウェイポイント名に <code>PC</code> <code>チェック</code> <code>check</code> <code>start</code> <code>goal</code> <code>finish</code> <code>通過</code> のいずれかが含まれていると、自動的に「①公式PCリスト」側へ分類されます。それ以外の名前は「②休憩スポット」側（コンビニ等）として分類されます。</li>
+          <li><strong>BRM距離枠の自動選択:</strong> ルート総距離に応じて、200/300/400/600kmの設定が自動的に選ばれます（手動で変更も可能です）。</li>
+          <li><strong>注意点:</strong>
+            <ul>
+              <li>GPXに標高（ele）データが含まれていない場合、獲得標高は0mとして扱われ、簡易工程図も表示されません。</li>
+              <li>読み込み後も①②のリストは通常のテキスト編集と同様に手動で書き換え・追記が可能です。</li>
+              <li>読み込んだGPXデータは端末内に保存され、次回起動時も保持されます（☰メニューの「リセット」または「バックアップ読み込み」で消去・上書きされます）。</li>
+            </ul>
+          </li>
+        </ul>
+
+        <h4>3. 基本操作</h4>
         <ul>
           <li><strong>現在距離の更新:</strong> サイコンの積算距離を入力。</li>
           <li><strong>目標ペース設計:</strong> PC枠内の15〜20km/h各グロス速度に応じた到着予想時刻を目安に走ります。</li>
           <li><strong>🏪 ボタン:</strong> 走行中、現在地周辺の最寄りコンビニをマップアプリでワンタップ検索します。</li>
         </ul>
 
-        <h4>3. ナビゲーションとマップ連動</h4>
+        <h4>4. ナビゲーションとマップ連動</h4>
         <ul>
           <li><strong>先行プレビュー:</strong> 各カード of <code>◀ 前</code> <code>次 ▶</code> ボタンで、距離に関係なく先々の地点を自由に確認可能。</li>
-          <li><strong>自動追従へ復帰:</strong> プレビュー中に中央の黄色の距離表示（<code>残り~km</code>）を<strong>ダブルクリック</strong>すると、現在地ベースの「次のスポット」に一発復帰します。</li>
+          <li><strong>自動追従へ復帰:</strong> プレビュー中に中央の黄色の距離表示（<code>残り~km</code>）を<strong>ダブルクリック</strong>すると、現在地ベースの「次のスポット」に一発復帰します（拡大表示中の場合は全体表示にも戻ります）。</li>
           <li><strong>マップ検索:</strong> 各カードの「地点名エリア」を<strong>ダブルクリック</strong>すると、その場所をマップで即座に検索できます（メニュー内連動ON時のみ）。</li>
+          <li><strong>進捗バーの拡大表示:</strong> START/GOALグラフ内の進捗バー（緑のバー部分）を<strong>タップ</strong>すると、現在地から25km先までの範囲に拡大表示されます。再度タップすると全体表示に戻ります。現在距離を更新した場合は自動的に全体表示に戻ります。</li>
         </ul>
 
-        <h4>4. 表示のカスタマイズ</h4>
+        <h4>5. 表示のカスタマイズ</h4>
         <ul>
           <li>メニュー内の「② コンビニ…」右側のトグルをOFFにすると、休憩枠が隠れ、残ったPC情報や最下段の<strong>「貯金時間」が自動で大きく拡大表示</strong>され、夜間も見やすくなります。</li>
         </ul>
 
-        <h4>5. 各種ステータス</h4>
+        <h4>6. 各種ステータス</h4>
         <ul>
           <li><strong>必要平均:</strong> 制限時間内にゴールする最低グロス速度。15km/hに近づくと危険です。</li>
           <li><strong>貯金時間:</strong> 制限時間に対する現在のアドバンテージ。
@@ -182,7 +205,7 @@ PC2, 山城大橋, 68.0km"></textarea>
   <div class="progress-section">
     <div class="graph-scale-container" id="graphScale">
       <svg id="elevationSvg" class="elevation-svg" viewBox="0 0 1000 100" preserveAspectRatio="none"></svg>
-      <div class="graph-container">
+      <div class="graph-container" id="progressBarTrack">
         <div id="graphBar" class="graph-bar"></div>
       </div>
     </div>

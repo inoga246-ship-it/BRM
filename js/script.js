@@ -33,6 +33,7 @@ const shopTitleRow = document.getElementById("shopTitleRow");
 const graphBar = document.getElementById("graphBar");
 const graphScale = document.getElementById("graphScale");
 const elevationSvg = document.getElementById("elevationSvg");
+const progressBarTrack = document.getElementById("progressBarTrack");
 
 const saveName = document.getElementById("saveName");
 const saveBtn = document.getElementById("saveBtn");
@@ -54,6 +55,12 @@ const defaultShopList = "ローソン 八幡南店, 32.1\nセブン 宇治川店
 let globalPCList = [];   
 let globalShopList = []; 
 let gpxTrackPoints = []; // GPXから解析した全トラックポイント [{lat, lon, ele, dist, gain}]
+
+// 進捗バー拡大表示（現在地から25km先までの範囲にズーム）用の状態
+let isZoomedView = false;
+let zoomRangeStart = 0;
+let zoomRangeEnd = 0;
+const ZOOM_RANGE_KM = 25;
 
 let pcDisplayIdx = -1; 
 let pcAutoTrackIdx = -1;        
@@ -193,13 +200,14 @@ convenienceBtn.addEventListener("click", () => {
   }
 });
 
-pcRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); if (isPcUserNavigating) { isPcUserNavigating = false; pcDisplayIdx = pcAutoTrackIdx; update(true); } });
+pcRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); exitZoomView(); if (isPcUserNavigating) { isPcUserNavigating = false; pcDisplayIdx = pcAutoTrackIdx; } update(true); });
 pcTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDblClickToggle.checked) return; if (globalPCList.length > 0 && pcDisplayIdx !== -1) { const item = globalPCList[pcDisplayIdx]; searchOnGoogleMap(item.id + " " + item.name); } });
-shopRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); if (isShopUserNavigating) { isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; update(true); } });
+shopRemainDist.addEventListener("dblclick", (e) => { e.stopPropagation(); exitZoomView(); if (isShopUserNavigating) { isShopUserNavigating = false; shopDisplayIdx = shopAutoTrackIdx; } update(true); });
 shopTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!mapDblClickToggle.checked) return; if (globalShopList.length > 0 && shopDisplayIdx !== -1) { searchOnGoogleMap(globalShopList[shopDisplayIdx].name); } });
 
 // --- GPXパーサー実装部分 ---
 gpxBtn.addEventListener("click", () => gpxFileInput.click());
+progressBarTrack.addEventListener("click", () => { toggleZoomView(); });
 gpxFileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -503,13 +511,34 @@ function updateDisplayOnly() {
 
 function renderGraphScale(targetDistance) {
   if (!targetDistance || targetDistance <= 0) return;
-  renderElevationProfile(targetDistance);
+
+  // 表示範囲（ズームしていない時はSTART(0)〜GOAL(targetDistance)、ズーム中は現在地〜+25kmの範囲）
+  let viewStart = 0, viewEnd = targetDistance;
+  if (isZoomedView) {
+    viewStart = zoomRangeStart;
+    viewEnd = Math.min(zoomRangeEnd, targetDistance);
+    if (viewEnd <= viewStart) viewEnd = viewStart + 0.1; // GOAL直前などの安全策
+  }
+  const viewSpan = viewEnd - viewStart;
+
+  // 簡易工程図：ズーム中は表示範囲(viewStart〜viewEnd)、非ズーム時はGPXの実測距離全体を使って描画する
+  if (isZoomedView) {
+    renderElevationProfile(viewStart, viewEnd);
+  } else {
+    const actualTotalDist = gpxTrackPoints.length > 0 ? gpxTrackPoints[gpxTrackPoints.length - 1].dist : targetDistance;
+    renderElevationProfile(0, actualTotalDist > 0 ? actualTotalDist : targetDistance);
+  }
+
   const items = graphScale.querySelectorAll(".scale-point"); items.forEach(el => el.remove());
-  createScalePoint(0, "START", "neutral-type", "10px", null); createScalePoint(100, "GOAL", "neutral-type", "10px", null);
+
+  const startLabel = viewStart <= 0.01 ? "START" : viewStart.toFixed(1) + "km";
+  const goalLabel = viewEnd >= targetDistance - 0.01 ? "GOAL" : viewEnd.toFixed(1) + "km";
+  createScalePoint(0, startLabel, "neutral-type", "10px", null); createScalePoint(100, goalLabel, "neutral-type", "10px", null);
+
   let lastPctPC = -999; let useUpperRowPC = false;
   globalPCList.forEach((p, idx) => {
-    if (p.dist < targetDistance) {
-      const pct = (p.dist / targetDistance) * 100; let label = String(p.id).split(/[\s,，、]/)[0]; if (label.length > 6) { label = label.substring(0, 4); }
+    if (p.dist < targetDistance && p.dist >= viewStart - 0.001 && p.dist <= viewEnd + 0.001) {
+      const pct = ((p.dist - viewStart) / viewSpan) * 100; let label = String(p.id).split(/[\s,，、]/)[0]; if (label.length > 6) { label = label.substring(0, 4); }
       if (pct - lastPctPC < 4.5) { useUpperRowPC = !useUpperRowPC; } else { useUpperRowPC = false; }
       let typeClass = "pc-type " + (useUpperRowPC ? "pc-type-row1" : "pc-type-row0"); if (idx === pcDisplayIdx) typeClass += " active-pc";
       createScalePoint(pct, label, typeClass, useUpperRowPC ? "1px" : "10px", null); lastPctPC = pct;
@@ -518,8 +547,8 @@ function renderGraphScale(targetDistance) {
   if (shopToggle.checked) {
     let lastPctShop = -999; let useLowerRowShop = false;
     globalShopList.forEach((s, idx) => {
-      if (s.dist < targetDistance) {
-        const pct = (s.dist / targetDistance) * 100; let label = String(s.id).split(/[\s,，、]/)[0]; if (label.length > 6) { label = label.substring(0, 4); }
+      if (s.dist < targetDistance && s.dist >= viewStart - 0.001 && s.dist <= viewEnd + 0.001) {
+        const pct = ((s.dist - viewStart) / viewSpan) * 100; let label = String(s.id).split(/[\s,，、]/)[0]; if (label.length > 6) { label = label.substring(0, 4); }
         if (pct - lastPctShop < 4.5) { useLowerRowShop = !useLowerRowShop; } else { useLowerRowShop = false; }
         let typeClass = "shop-type " + (useLowerRowShop ? "shop-type-row1" : "shop-type-row0"); if (idx === shopDisplayIdx) typeClass += " active-shop";
         createScalePoint(pct, label, typeClass, null, useLowerRowShop ? "1px" : "10px"); lastPctShop = pct;
@@ -533,11 +562,32 @@ function createScalePoint(leftPct, label, className, topStyle, bottomStyle) {
   if (topStyle !== null) div.style.top = topStyle; if (bottomStyle !== null) div.style.bottom = bottomStyle; graphScale.appendChild(div);
 }
 
-// 簡易工程図：GPXの標高データを使い、START(0%)〜GOAL(targetDistance=100%)に正規化して
+// 進捗バーのクリックで「現在地〜+25km」にズーム／全体表示をトグルする
+function toggleZoomView() {
+  const brmVal = brm.value || "200,13.5";
+  const [targetDistance] = brmVal.split(",").map(Number);
+  if (isZoomedView) {
+    isZoomedView = false;
+  } else {
+    const currentDist = parseFloat(distance.value) || 0;
+    zoomRangeStart = currentDist;
+    zoomRangeEnd = currentDist + ZOOM_RANGE_KM;
+    isZoomedView = true;
+  }
+  renderGraphScale(targetDistance);
+}
+
+// 現在距離の更新や残り距離のダブルクリックなど、全体表示に戻すべき操作で呼び出す
+function exitZoomView() {
+  if (isZoomedView) { isZoomedView = false; return true; }
+  return false;
+}
+
+// 簡易工程図：GPXの標高データを使い、指定した距離範囲(viewStart〜viewEnd)を0%〜100%に正規化して
 // 既存のSTART/GOALグラフ枠（graph-scale-container）の背面いっぱいに勾配プロファイルを描画する
-function renderElevationProfile(targetDistance) {
+function renderElevationProfile(viewStart, viewEnd) {
   if (!elevationSvg) return;
-  if (!targetDistance || targetDistance <= 0 || gpxTrackPoints.length === 0) { elevationSvg.innerHTML = ""; return; }
+  if (gpxTrackPoints.length === 0 || viewEnd <= viewStart) { elevationSvg.innerHTML = ""; return; }
 
   const W = 1000, H = 100;
 
@@ -548,24 +598,37 @@ function renderElevationProfile(targetDistance) {
   }
   if (!isFinite(minEle) || !isFinite(maxEle) || maxEle <= minEle) { maxEle = minEle + 1; }
 
-  // 描画負荷軽減のため最大200点程度にダウンサンプリング
-  const step = Math.max(1, Math.floor(gpxTrackPoints.length / 200));
-  let pts = [];
-  for (let i = 0; i < gpxTrackPoints.length; i += step) {
+  // 表示範囲(viewStart〜viewEnd)に含まれる点を抽出する（境界の前後を補完するため一点ずつ余分に含める）
+  let inRange = [];
+  for (let i = 0; i < gpxTrackPoints.length; i++) {
     const p = gpxTrackPoints[i];
-    // 距離はGPXの実測値ではなくBRM設定距離(targetDistance)に対する比率で正規化する
-    // → 200km設定ならSTART=0, GOAL=200の位置に必ず合うようにする
-    const x = (p.dist / targetDistance) * W;
+    if (p.dist < viewStart) { inRange = [p]; continue; }
+    inRange.push(p);
+    if (p.dist > viewEnd) break;
+  }
+  if (inRange.length < 2) { elevationSvg.innerHTML = ""; return; }
+
+  const rangeSpan = viewEnd - viewStart;
+  // 描画負荷軽減のため、範囲内の点数が多い場合は最大200点程度にダウンサンプリングする
+  const step = Math.max(1, Math.floor(inRange.length / 200));
+  let pts = [];
+  for (let i = 0; i < inRange.length; i += step) {
+    const p = inRange[i];
+    const x = Math.min(W, Math.max(0, ((p.dist - viewStart) / rangeSpan) * W));
     const y = H - ((p.ele - minEle) / (maxEle - minEle)) * H;
-    if (x >= W) { pts.push(W.toFixed(1) + "," + y.toFixed(1)); break; }
     pts.push(x.toFixed(1) + "," + y.toFixed(1));
   }
+  const lastP = inRange[inRange.length - 1];
+  const lastX = Math.min(W, Math.max(0, ((lastP.dist - viewStart) / rangeSpan) * W));
+  const lastY = H - ((lastP.ele - minEle) / (maxEle - minEle)) * H;
+  const lastPtStr = lastX.toFixed(1) + "," + lastY.toFixed(1);
+  if (pts[pts.length - 1] !== lastPtStr) pts.push(lastPtStr);
   if (pts.length < 2) { elevationSvg.innerHTML = ""; return; }
 
   const lineD = "M " + pts.join(" L ");
-  const lastX = pts[pts.length - 1].split(",")[0];
-  const firstX = pts[0].split(",")[0];
-  const areaD = lineD + ` L ${lastX},${H} L ${firstX},${H} Z`;
+  const lastX2 = pts[pts.length - 1].split(",")[0];
+  const firstX2 = pts[0].split(",")[0];
+  const areaD = lineD + ` L ${lastX2},${H} L ${firstX2},${H} Z`;
 
   elevationSvg.innerHTML = `<path d="${areaD}" class="elevation-area"></path><path d="${lineD}" class="elevation-line"></path>`;
 }
@@ -602,7 +665,9 @@ function update(isDistanceOrInputChanged = false) {
   
   if (pcInput.value !== lastPcInputText) { globalPCList = parseTextList(pcInput.value, true); lastPcInputText = pcInput.value; }
   if (shopInput.value !== lastShopInputText) { globalShopList = parseTextList(shopInput.value, false); lastShopInputText = shopInput.value; }
-  let progressPct = targetDistance > 0 ? Math.min(100, Math.max(0, (currentDist / targetDistance) * 100)) : 0; 
+  let viewStart = 0, viewEnd = targetDistance;
+  if (isZoomedView) { viewStart = zoomRangeStart; viewEnd = Math.min(zoomRangeEnd, targetDistance); if (viewEnd <= viewStart) viewEnd = viewStart + 0.1; }
+  let progressPct = (viewEnd > viewStart) ? Math.min(100, Math.max(0, ((currentDist - viewStart) / (viewEnd - viewStart)) * 100)) : 0; 
   graphBar.style.width = progressPct + "%";
 
   let detectedPcIdx = globalPCList.length > 0 ? globalPCList.length - 1 : -1;
@@ -640,7 +705,7 @@ resetBtn.addEventListener("click", () => {
     gpxTrackPoints = [];
     startTime.value = ""; distance.value = ""; pcInput.value = ""; shopInput.value = ""; saveName.value = ""; tempDistanceValue = ""; graphBar.style.width = "0%";
     ["elapsed", "remainTime", "gross", "remainDistance", "finish", "needSpeed", "saving"].forEach(id => document.getElementById(id).innerText = "--");
-    document.getElementById("saving").className = "big-value"; isPcUserNavigating = false; isShopUserNavigating = false; menuContent.classList.remove("open");
+    document.getElementById("saving").className = "big-value"; isPcUserNavigating = false; isShopUserNavigating = false; isZoomedView = false; menuContent.classList.remove("open");
     loadSavedListsDropdown(); savedListsSelect.selectedIndex = 0; shopToggle.checked = true; localStorage.setItem("shopToggleState", "true");
     document.body.classList.remove("shop-off"); shopCard.style.display = "block"; mapDblClickToggle.checked = true; localStorage.setItem("mapDblClickState", "true");
     convenienceBtnToggle.checked = true; convenienceBtnWrapper.style.display = "block"; topRowGrid.classList.remove("convenience-off");
@@ -649,7 +714,7 @@ resetBtn.addEventListener("click", () => {
 });
 
 setInterval(() => update(false), 1000);
-distance.addEventListener("input", () => { persistInputs(); update(true); });
+distance.addEventListener("input", () => { exitZoomView(); persistInputs(); update(true); });
 pcInput.addEventListener("input", () => { persistInputs(); update(true); });
 shopInput.addEventListener("input", () => { persistInputs(); update(true); });
 startTime.addEventListener("change", () => { persistInputs(); update(false); });
