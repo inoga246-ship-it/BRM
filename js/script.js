@@ -56,12 +56,13 @@ let globalPCList = [];
 let globalShopList = []; 
 let gpxTrackPoints = []; // GPXから解析した全トラックポイント [{lat, lon, ele, dist, gain}]
 
-// 進捗バー拡大表示（現在地の5km手前から25km先までの計30km範囲にズーム）用の状態
-let isZoomedView = false;
-let zoomRangeStart = 0;
-let zoomRangeEnd = 0;
-const ZOOM_BEFORE_KM = 5;
-const ZOOM_AFTER_KM = 25;
+// 進捗バー拡大表示用の状態（0:全体表示 / 1:前2km+後38km＝計40km / 2:前2km+後18km＝計20km）
+let zoomLevel = 0;
+let zoomBaseStart = 0;
+let zoomBaseEnd = 0;
+let zoomPanOffsetKm = 0; // クリックしながら横にスライドした分の追加オフセット(km)
+const ZOOM_BEFORE_KM = 2;
+const ZOOM_LEVEL_AFTER_KM = { 1: 38, 2: 18 };
 
 let pcDisplayIdx = -1; 
 let pcAutoTrackIdx = -1;        
@@ -208,7 +209,37 @@ shopTitleRow.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!map
 
 // --- GPXパーサー実装部分 ---
 gpxBtn.addEventListener("click", () => gpxFileInput.click());
-progressBarTrack.addEventListener("click", () => { toggleZoomView(); });
+// 進捗バー周辺：タップ(移動なし)でズーム段階を循環、クリック(タップ)しながら横にスライドでパン移動
+let panPointerId = null;
+let panStartClientX = 0;
+let panStartOffsetKm = 0;
+let panMoved = false;
+const PAN_DRAG_THRESHOLD_PX = 6;
+
+graphScale.addEventListener("pointerdown", (e) => {
+  panPointerId = e.pointerId; panStartClientX = e.clientX; panStartOffsetKm = zoomPanOffsetKm; panMoved = false;
+});
+graphScale.addEventListener("pointermove", (e) => {
+  if (panPointerId === null || e.pointerId !== panPointerId) return;
+  const dx = e.clientX - panStartClientX;
+  if (!panMoved && Math.abs(dx) < PAN_DRAG_THRESHOLD_PX) return;
+  panMoved = true;
+  if (zoomLevel === 0) return; // 全体表示中はパン操作なし
+  e.preventDefault();
+  const rect = graphScale.getBoundingClientRect(); const widthPx = rect.width || 1;
+  const spanKm = zoomBaseEnd - zoomBaseStart;
+  const deltaKm = (dx / widthPx) * spanKm;
+  // 指を左にドラッグ(dx<0)すると先(GOAL方向)の情報が見えるようにする
+  zoomPanOffsetKm = panStartOffsetKm - deltaKm;
+  const [targetDistance] = (brm.value || "200,13.5").split(",").map(Number);
+  renderGraphScale(targetDistance);
+});
+graphScale.addEventListener("pointerup", (e) => {
+  if (panPointerId !== e.pointerId) return;
+  if (!panMoved) { cycleZoomLevel(); }
+  panPointerId = null;
+});
+graphScale.addEventListener("pointercancel", () => { panPointerId = null; });
 gpxFileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -510,20 +541,27 @@ function updateDisplayOnly() {
   }
 }
 
+// 現在のズーム段階・パンオフセットに応じた表示範囲[viewStart, viewEnd]を計算する
+function getViewRange(targetDistance) {
+  if (zoomLevel === 0) return [0, targetDistance];
+  const maxEnd = Math.max(targetDistance, gpxTrackPoints.length > 0 ? gpxTrackPoints[gpxTrackPoints.length - 1].dist : targetDistance);
+  const span = zoomBaseEnd - zoomBaseStart;
+  let start = zoomBaseStart + zoomPanOffsetKm;
+  let end = zoomBaseEnd + zoomPanOffsetKm;
+  if (start < 0) { end -= start; start = 0; }
+  if (end > maxEnd) { start -= (end - maxEnd); end = maxEnd; if (start < 0) start = 0; }
+  if (end <= start) end = start + 0.1;
+  return [start, end];
+}
+
 function renderGraphScale(targetDistance) {
   if (!targetDistance || targetDistance <= 0) return;
 
-  // 表示範囲（ズームしていない時はSTART(0)〜GOAL(targetDistance)、ズーム中は現在地〜+25kmの範囲）
-  let viewStart = 0, viewEnd = targetDistance;
-  if (isZoomedView) {
-    viewStart = zoomRangeStart;
-    viewEnd = Math.min(zoomRangeEnd, targetDistance);
-    if (viewEnd <= viewStart) viewEnd = viewStart + 0.1; // GOAL直前などの安全策
-  }
+  const [viewStart, viewEnd] = getViewRange(targetDistance);
   const viewSpan = viewEnd - viewStart;
 
   // 簡易工程図：ズーム中は表示範囲(viewStart〜viewEnd)、非ズーム時はGPXの実測距離全体を使って描画する
-  if (isZoomedView) {
+  if (zoomLevel !== 0) {
     renderElevationProfile(viewStart, viewEnd);
   } else {
     const actualTotalDist = gpxTrackPoints.length > 0 ? gpxTrackPoints[gpxTrackPoints.length - 1].dist : targetDistance;
@@ -563,24 +601,24 @@ function createScalePoint(leftPct, label, className, topStyle, bottomStyle) {
   if (topStyle !== null) div.style.top = topStyle; if (bottomStyle !== null) div.style.bottom = bottomStyle; graphScale.appendChild(div);
 }
 
-// 進捗バーのクリックで「現在地〜+25km」にズーム／全体表示をトグルする
-function toggleZoomView() {
+// 進捗バー（とその周辺）のタップで、全体表示→前2km+後38km(計40km)→前2km+後18km(計20km)→全体表示...の3段階を循環する
+function cycleZoomLevel() {
   const brmVal = brm.value || "200,13.5";
   const [targetDistance] = brmVal.split(",").map(Number);
-  if (isZoomedView) {
-    isZoomedView = false;
-  } else {
+  zoomLevel = (zoomLevel + 1) % 3;
+  zoomPanOffsetKm = 0;
+  if (zoomLevel !== 0) {
     const currentDist = parseFloat(distance.value) || 0;
-    zoomRangeStart = Math.max(0, currentDist - ZOOM_BEFORE_KM);
-    zoomRangeEnd = currentDist + ZOOM_AFTER_KM;
-    isZoomedView = true;
+    const afterKm = ZOOM_LEVEL_AFTER_KM[zoomLevel];
+    zoomBaseStart = Math.max(0, currentDist - ZOOM_BEFORE_KM);
+    zoomBaseEnd = currentDist + afterKm;
   }
   renderGraphScale(targetDistance);
 }
 
 // 現在距離の更新や残り距離のダブルクリックなど、全体表示に戻すべき操作で呼び出す
 function exitZoomView() {
-  if (isZoomedView) { isZoomedView = false; return true; }
+  if (zoomLevel !== 0) { zoomLevel = 0; zoomPanOffsetKm = 0; return true; }
   return false;
 }
 
@@ -666,8 +704,7 @@ function update(isDistanceOrInputChanged = false) {
   
   if (pcInput.value !== lastPcInputText) { globalPCList = parseTextList(pcInput.value, true); lastPcInputText = pcInput.value; }
   if (shopInput.value !== lastShopInputText) { globalShopList = parseTextList(shopInput.value, false); lastShopInputText = shopInput.value; }
-  let viewStart = 0, viewEnd = targetDistance;
-  if (isZoomedView) { viewStart = zoomRangeStart; viewEnd = Math.min(zoomRangeEnd, targetDistance); if (viewEnd <= viewStart) viewEnd = viewStart + 0.1; }
+  const [viewStart, viewEnd] = getViewRange(targetDistance);
   let progressPct = (viewEnd > viewStart) ? Math.min(100, Math.max(0, ((currentDist - viewStart) / (viewEnd - viewStart)) * 100)) : 0; 
   graphBar.style.width = progressPct + "%";
 
@@ -706,7 +743,7 @@ resetBtn.addEventListener("click", () => {
     gpxTrackPoints = [];
     startTime.value = ""; distance.value = ""; pcInput.value = ""; shopInput.value = ""; saveName.value = ""; tempDistanceValue = ""; graphBar.style.width = "0%";
     ["elapsed", "remainTime", "gross", "remainDistance", "finish", "needSpeed", "saving"].forEach(id => document.getElementById(id).innerText = "--");
-    document.getElementById("saving").className = "big-value"; isPcUserNavigating = false; isShopUserNavigating = false; isZoomedView = false; menuContent.classList.remove("open");
+    document.getElementById("saving").className = "big-value"; isPcUserNavigating = false; isShopUserNavigating = false; zoomLevel = 0; zoomPanOffsetKm = 0; menuContent.classList.remove("open");
     loadSavedListsDropdown(); savedListsSelect.selectedIndex = 0; shopToggle.checked = true; localStorage.setItem("shopToggleState", "true");
     document.body.classList.remove("shop-off"); shopCard.style.display = "block"; mapDblClickToggle.checked = true; localStorage.setItem("mapDblClickState", "true");
     convenienceBtnToggle.checked = true; convenienceBtnWrapper.style.display = "block"; topRowGrid.classList.remove("convenience-off");
