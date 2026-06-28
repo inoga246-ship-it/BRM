@@ -324,21 +324,19 @@ input:checked + .slider:before { transform: translateX(20px); }
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
-#gpsTrackBtn.active {
-  color: #00ff66;
-  border-color: #00ff66;
-  text-shadow: 0 0 6px rgba(0, 255, 102, 0.8);
-  box-shadow: 0 0 6px rgba(0, 255, 102, 0.3);
-  animation: pulse-gps 2s infinite;
-}
 #gpsTrackBtn.searching {
   color: #ffcc00;
   border-color: #ffcc00;
+  animation: pulse-gps 0.8s infinite;
+}
+#gpsTrackBtn.error-flash {
+  color: #ff4444;
+  border-color: #ff4444;
 }
 @keyframes pulse-gps {
-  0% { box-shadow: 0 0 4px rgba(0, 255, 102, 0.3); }
-  50% { box-shadow: 0 0 10px rgba(0, 255, 102, 0.7); }
-  100% { box-shadow: 0 0 4px rgba(0, 255, 102, 0.3); }
+  0% { box-shadow: 0 0 4px rgba(255, 204, 0, 0.3); }
+  50% { box-shadow: 0 0 10px rgba(255, 204, 0, 0.8); }
+  100% { box-shadow: 0 0 4px rgba(255, 204, 0, 0.3); }
 }
 .card-center {
   padding: 8px 10px;

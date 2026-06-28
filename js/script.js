@@ -36,9 +36,8 @@ const elevationSvg = document.getElementById("elevationSvg");
 const progressBarTrack = document.getElementById("progressBarTrack");
 const gpsTrackBtn = document.getElementById("gpsTrackBtn");
 
-// GPS自動距離更新用の状態
-let gpsAutoTrackEnabled = false;
-let gpsWatchId = null;
+// GPS距離取得（📍ボタンを押した時だけ1回だけ取得するワンショット方式。電池消耗を抑えるため常時監視はしない）
+let gpsIsFetching = false;
 let gpsLastMatchedDist = null; // 直前にマッチした距離（往復ルートでの誤判定を防ぐための連続性チェックに使用）
 const GPS_SEARCH_WINDOW_KM = 8;   // 直前距離から±この範囲内の点のみを探索対象にする（往路/復路の取り違え防止）
 const GPS_MAX_MATCH_DIST_KM = 0.3; // 最も近い点でも300m以上離れている場合は採用しない（コースアウト時の誤反映防止）
@@ -403,45 +402,52 @@ function matchPositionToRoute(lat, lon, lastDist) {
 }
 
 function setGpsButtonState(state) {
-  // state: "off" | "active" | "searching"
+  // state: "idle" | "fetching" | "error"
   gpsTrackBtn.classList.remove("active", "searching");
-  if (state === "active") gpsTrackBtn.classList.add("active");
-  else if (state === "searching") gpsTrackBtn.classList.add("searching");
+  if (state === "fetching") gpsTrackBtn.classList.add("searching");
+  else if (state === "error") gpsTrackBtn.classList.add("error-flash");
 }
 
-function onGpsPosition(pos) {
-  setGpsButtonState("active");
-  const matchedDist = matchPositionToRoute(pos.coords.latitude, pos.coords.longitude, gpsLastMatchedDist);
-  if (matchedDist === null) return; // コースアウト等で信頼できない場合は何もしない（前回値を保持）
-  gpsLastMatchedDist = matchedDist;
-  distance.value = matchedDist.toFixed(1);
-  persistInputs();
-  update(true);
-}
-
-function onGpsError(err) {
-  setGpsButtonState("searching");
-}
-
-function startGpsAutoTrack() {
-  if (gpxTrackPoints.length === 0) { alert("GPS自動距離更新を使うには、先にGPXファイルを読み込んでください。"); return; }
+// 📍ボタンを押した時だけ1回だけGPSを取得する（常時監視はしないため電池消耗を抑えられる）
+function fetchGpsDistanceOnce() {
+  if (gpsIsFetching) return; // 取得中は多重実行しない
+  if (gpxTrackPoints.length === 0) { alert("GPSで距離を取得するには、先にGPXファイルを読み込んでください。"); return; }
   if (!navigator.geolocation) { alert("この端末・ブラウザは位置情報の取得に対応していません。"); return; }
-  gpsAutoTrackEnabled = true;
-  gpsLastMatchedDist = parseFloat(distance.value);
-  if (isNaN(gpsLastMatchedDist)) gpsLastMatchedDist = null;
-  setGpsButtonState("searching");
-  gpsWatchId = navigator.geolocation.watchPosition(onGpsPosition, onGpsError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 });
+
+  gpsIsFetching = true;
+  setGpsButtonState("fetching");
+
+  const seedDist = parseFloat(distance.value);
+  const lastDistForMatching = isNaN(seedDist) ? gpsLastMatchedDist : seedDist;
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const matchedDist = matchPositionToRoute(pos.coords.latitude, pos.coords.longitude, lastDistForMatching);
+      gpsIsFetching = false;
+      if (matchedDist === null) {
+        setGpsButtonState("error");
+        setTimeout(() => setGpsButtonState("idle"), 1500);
+        alert("現在地がルートから離れているため、距離を更新できませんでした。");
+        return;
+      }
+      gpsLastMatchedDist = matchedDist;
+      distance.value = matchedDist.toFixed(1);
+      persistInputs();
+      exitZoomView();
+      update(true);
+      setGpsButtonState("idle");
+    },
+    (err) => {
+      gpsIsFetching = false;
+      setGpsButtonState("error");
+      setTimeout(() => setGpsButtonState("idle"), 1500);
+      alert("GPS位置情報の取得に失敗しました。電波状況の良い場所で再度お試しください。");
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
 }
 
-function stopGpsAutoTrack() {
-  gpsAutoTrackEnabled = false;
-  if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
-  setGpsButtonState("off");
-}
-
-gpsTrackBtn.addEventListener("click", () => {
-  if (gpsAutoTrackEnabled) { stopGpsAutoTrack(); } else { startGpsAutoTrack(); }
-});
+gpsTrackBtn.addEventListener("click", () => { fetchGpsDistanceOnce(); });
 
 function getGpxGainAtDistance(dist) {
   if (gpxTrackPoints.length === 0) return 0;
@@ -818,7 +824,7 @@ function update(isDistanceOrInputChanged = false) {
 
 resetBtn.addEventListener("click", () => {
   if (confirm("すべての設定、リスト、走行データをリセットしますか？")) {
-    if (gpsAutoTrackEnabled) stopGpsAutoTrack();
+    gpsLastMatchedDist = null;
     localStorage.removeItem("startTime"); localStorage.removeItem("distance"); localStorage.removeItem("pcList3"); localStorage.removeItem("shopList3");
     localStorage.removeItem("convenienceBtnState"); localStorage.removeItem("gpxTrackPoints");
     gpxTrackPoints = [];
@@ -833,7 +839,7 @@ resetBtn.addEventListener("click", () => {
 });
 
 setInterval(() => update(false), 1000);
-distance.addEventListener("input", () => { if (gpsAutoTrackEnabled) stopGpsAutoTrack(); exitZoomView(); persistInputs(); update(true); });
+distance.addEventListener("input", () => { exitZoomView(); persistInputs(); update(true); });
 pcInput.addEventListener("input", () => { persistInputs(); update(true); });
 shopInput.addEventListener("input", () => { persistInputs(); update(true); });
 startTime.addEventListener("change", () => { persistInputs(); update(false); });
