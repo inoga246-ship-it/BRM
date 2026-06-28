@@ -34,6 +34,14 @@ const graphBar = document.getElementById("graphBar");
 const graphScale = document.getElementById("graphScale");
 const elevationSvg = document.getElementById("elevationSvg");
 const progressBarTrack = document.getElementById("progressBarTrack");
+const gpsTrackBtn = document.getElementById("gpsTrackBtn");
+
+// GPS自動距離更新用の状態
+let gpsAutoTrackEnabled = false;
+let gpsWatchId = null;
+let gpsLastMatchedDist = null; // 直前にマッチした距離（往復ルートでの誤判定を防ぐための連続性チェックに使用）
+const GPS_SEARCH_WINDOW_KM = 8;   // 直前距離から±この範囲内の点のみを探索対象にする（往路/復路の取り違え防止）
+const GPS_MAX_MATCH_DIST_KM = 0.3; // 最も近い点でも300m以上離れている場合は採用しない（コースアウト時の誤反映防止）
 
 const saveName = document.getElementById("saveName");
 const saveBtn = document.getElementById("saveBtn");
@@ -365,6 +373,76 @@ gpxFileInput.addEventListener("change", (e) => {
   reader.readAsText(file);
 });
 
+// 2点間の距離(km)を計算（ハーバサイン公式）
+function calcHaversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// 現在のGPS座標をGPXルート上の距離(km)にマッチングする。
+// ・往復ルートや並走区間での誤判定を防ぐため、直前にマッチした距離の±GPS_SEARCH_WINDOW_KM以内の点だけを探索対象にする（連続性チェック）
+// ・コースから大きく外れている場合（GPS_MAX_MATCH_DIST_KM超）は信頼できないとみなしnullを返す（更新しない）
+function matchPositionToRoute(lat, lon, lastDist) {
+  if (gpxTrackPoints.length === 0) return null;
+  let candidates = gpxTrackPoints;
+  if (lastDist !== null && !isNaN(lastDist)) {
+    const windowed = gpxTrackPoints.filter(p => Math.abs(p.dist - lastDist) <= GPS_SEARCH_WINDOW_KM);
+    if (windowed.length > 0) candidates = windowed;
+  }
+  let best = null, bestDist = Infinity;
+  for (let i = 0; i < candidates.length; i++) {
+    const p = candidates[i];
+    const d = calcHaversineDistance(lat, lon, p.lat, p.lon);
+    if (d < bestDist) { bestDist = d; best = p; }
+  }
+  if (!best || bestDist > GPS_MAX_MATCH_DIST_KM) return null;
+  return best.dist;
+}
+
+function setGpsButtonState(state) {
+  // state: "off" | "active" | "searching"
+  gpsTrackBtn.classList.remove("active", "searching");
+  if (state === "active") gpsTrackBtn.classList.add("active");
+  else if (state === "searching") gpsTrackBtn.classList.add("searching");
+}
+
+function onGpsPosition(pos) {
+  setGpsButtonState("active");
+  const matchedDist = matchPositionToRoute(pos.coords.latitude, pos.coords.longitude, gpsLastMatchedDist);
+  if (matchedDist === null) return; // コースアウト等で信頼できない場合は何もしない（前回値を保持）
+  gpsLastMatchedDist = matchedDist;
+  distance.value = matchedDist.toFixed(1);
+  persistInputs();
+  update(true);
+}
+
+function onGpsError(err) {
+  setGpsButtonState("searching");
+}
+
+function startGpsAutoTrack() {
+  if (gpxTrackPoints.length === 0) { alert("GPS自動距離更新を使うには、先にGPXファイルを読み込んでください。"); return; }
+  if (!navigator.geolocation) { alert("この端末・ブラウザは位置情報の取得に対応していません。"); return; }
+  gpsAutoTrackEnabled = true;
+  gpsLastMatchedDist = parseFloat(distance.value);
+  if (isNaN(gpsLastMatchedDist)) gpsLastMatchedDist = null;
+  setGpsButtonState("searching");
+  gpsWatchId = navigator.geolocation.watchPosition(onGpsPosition, onGpsError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 });
+}
+
+function stopGpsAutoTrack() {
+  gpsAutoTrackEnabled = false;
+  if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+  setGpsButtonState("off");
+}
+
+gpsTrackBtn.addEventListener("click", () => {
+  if (gpsAutoTrackEnabled) { stopGpsAutoTrack(); } else { startGpsAutoTrack(); }
+});
+
 function getGpxGainAtDistance(dist) {
   if (gpxTrackPoints.length === 0) return 0;
   if (dist <= 0) return 0;
@@ -573,6 +651,8 @@ function renderGraphScale(targetDistance) {
   const startLabel = viewStart <= 0.01 ? "START" : viewStart.toFixed(1) + "km";
   const goalLabel = viewEnd >= targetDistance - 0.01 ? "GOAL" : viewEnd.toFixed(1) + "km";
   createScalePoint(0, startLabel, "neutral-type", "10px", null); createScalePoint(100, goalLabel, "neutral-type", "10px", null);
+  const midDist = (viewStart + viewEnd) / 2;
+  createScalePoint(50, midDist.toFixed(1) + "km", "mid-type", "10px", null);
 
   let lastPctPC = -999; let useUpperRowPC = false;
   globalPCList.forEach((p, idx) => {
@@ -738,6 +818,7 @@ function update(isDistanceOrInputChanged = false) {
 
 resetBtn.addEventListener("click", () => {
   if (confirm("すべての設定、リスト、走行データをリセットしますか？")) {
+    if (gpsAutoTrackEnabled) stopGpsAutoTrack();
     localStorage.removeItem("startTime"); localStorage.removeItem("distance"); localStorage.removeItem("pcList3"); localStorage.removeItem("shopList3");
     localStorage.removeItem("convenienceBtnState"); localStorage.removeItem("gpxTrackPoints");
     gpxTrackPoints = [];
@@ -752,7 +833,7 @@ resetBtn.addEventListener("click", () => {
 });
 
 setInterval(() => update(false), 1000);
-distance.addEventListener("input", () => { exitZoomView(); persistInputs(); update(true); });
+distance.addEventListener("input", () => { if (gpsAutoTrackEnabled) stopGpsAutoTrack(); exitZoomView(); persistInputs(); update(true); });
 pcInput.addEventListener("input", () => { persistInputs(); update(true); });
 shopInput.addEventListener("input", () => { persistInputs(); update(true); });
 startTime.addEventListener("change", () => { persistInputs(); update(false); });

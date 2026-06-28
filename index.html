@@ -160,6 +160,7 @@ PC2, 山城大橋, 68.0km"></textarea>
         <h4>3. 基本操作</h4>
         <ul>
           <li><strong>現在距離の更新:</strong> サイコンの積算距離を入力。</li>
+          <li><strong>📍 GPS自動距離更新:</strong> 現在距離欄の横にある📍ボタンをタップすると、GPSから取得した現在地をGPXルート上の距離に変換し、自動的に現在距離欄へ反映します（GPX読み込み済みの場合のみ使用可能）。直前にマッチした距離の前後8km以内を優先的に探索するため、往復ルートのような同じ場所を2度通る区間でも、往路・復路を取り違えにくくなっています。距離欄を手動で書き換えると自動更新は一旦停止しますので、必要に応じて手動修正とGPS追従を使い分けてください。コースから300m以上外れている場合は、信頼できないと判断して値を更新しません。</li>
           <li><strong>目標ペース設計:</strong> PC枠内の15〜20km/h各グロス速度に応じた到着予想時刻を目安に走ります。</li>
           <li><strong>🏪 ボタン:</strong> 走行中、現在地周辺の最寄りコンビニをマップアプリでワンタップ検索します。</li>
         </ul>
@@ -192,7 +193,10 @@ PC2, 山城大橋, 68.0km"></textarea>
   <div class="top-row-grid" id="topRowGrid">
     <div class="slim-card" id="distanceCard">
       <div class="title">現在距離</div>
-      <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:25px; color:#00ff66; padding: 2px; text-align: center; background: transparent; font-weight: bold; text-shadow: 0 0 6px rgba(0,255,102,0.3); border:none;">
+      <div class="distance-input-row">
+        <input type="number" id="distance" step="0.1" inputmode="decimal" style="font-size:25px; color:#00ff66; padding: 2px; text-align: center; background: transparent; font-weight: bold; text-shadow: 0 0 6px rgba(0,255,102,0.3); border:none; flex:1; min-width:0;">
+        <button type="button" id="gpsTrackBtn" title="GPSで現在距離を自動取得">📍</button>
+      </div>
     </div>
     <div class="slim-card" id="timeCard">
       <div class="title">現在時間</div>
