@@ -858,9 +858,9 @@ function update(isDistanceOrInputChanged = false) {
   if (!startTime.value) return; let start = new Date(startTime.value);
   if (isNaN(start.getTime())) return;
   if (now < start) {
-    document.getElementById("elapsed").innerText = "スタート前"; document.getElementById("remainTime").innerText = "スタート前"; document.getElementById("gross").innerText = "--";
-    document.getElementById("remainDistance").innerText = targetDistance.toFixed(1) + " km"; document.getElementById("finish").innerText = "--"; document.getElementById("needSpeed").innerText = "--";
-    document.getElementById("saving").innerText = "--"; document.getElementById("saving").className = "big-value"; return;
+    document.getElementById("elapsed").innerText = ""; document.getElementById("remainTime").innerText = ""; document.getElementById("gross").innerText = "--";
+    document.getElementById("remainDistance").innerText = targetDistance.toFixed(1) + " km"; document.getElementById("finish").innerText = ""; document.getElementById("needSpeed").innerText = "--";
+    document.getElementById("saving").innerText = ""; document.getElementById("saving").className = "big-value"; return;
   }
   let elapsed = (now - start) / 1000 / 3600; if (elapsed <= 0 || !distance.value) return;
   const gross = currentDist / elapsed; document.getElementById("elapsed").innerText = Math.floor(elapsed) + "時間" + Math.floor((elapsed - Math.floor(elapsed)) * 60) + "分";
